@@ -8,9 +8,9 @@
 
 ## 2.2.0
 
-- [ ] Expand type inference beyond simple `New` and direct return patterns
-- [ ] Improve external reference / COM metadata handling
-- [ ] Add more agent-oriented MCP workflows
+- [x] Expand type inference beyond simple `New` and direct return patterns
+- [x] Improve external reference / COM metadata handling
+- [x] Add more agent-oriented MCP workflows
 
 ## 2.3.0
 

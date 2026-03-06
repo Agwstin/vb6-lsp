@@ -23,6 +23,7 @@ export interface MCPSymbol {
   name: string;
   kind: string;
   visibility: string;
+  scope: string;
   moduleName: string;
   file: string;         // relPath (for compat with server.mjs tools)
   line: number;
@@ -30,6 +31,10 @@ export interface MCPSymbol {
   signature: string;
   params: VB6Parameter[];
   returnType: string;
+  accessor?: string;
+  containerName?: string;
+  containerKind?: string;
+  containerLine?: number;
 }
 
 export interface MCPIndex {
@@ -101,6 +106,7 @@ export function buildVB6Index(sourcePath: string, sourceDirs: string[]): MCPInde
         name: sym.name,
         kind: sym.kind,
         visibility: sym.visibility,
+        scope: sym.scope,
         moduleName: sym.moduleName,
         file: relPath,
         line: sym.line,
@@ -108,6 +114,10 @@ export function buildVB6Index(sourcePath: string, sourceDirs: string[]): MCPInde
         signature: sym.signature.slice(0, 300),
         params: sym.params,
         returnType: sym.returnType,
+        accessor: sym.accessor,
+        containerName: sym.containerName,
+        containerKind: sym.containerKind,
+        containerLine: sym.containerLine,
       };
       symbols.push(mcp);
       mcpSyms.push(mcp);

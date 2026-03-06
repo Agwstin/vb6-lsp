@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.0 - 2026-03-06
+
+- Expanded type inference to follow assignments from typed variables and typed factory functions.
+- Improved `.vbp` reference parsing with richer metadata such as versions, library names, and existence checks.
+- Added more agent-oriented MCP tools: `list_projects`, `reference_info`, and `type_members`.
+- Expanded the automated suite to `16/16` passing tests.
+
 ## 2.1.1 - 2026-03-06
 
 - Fixed the test runner command so CI works reliably on Windows runners.

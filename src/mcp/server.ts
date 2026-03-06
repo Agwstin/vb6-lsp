@@ -47,6 +47,27 @@ function writeMessage(message: unknown) {
 function listTools() {
   return [
     {
+      name: 'list_projects',
+      description: 'List discovered VB6 projects in the current workspace.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'reference_info',
+      description: 'Search external/object project references by description, library name, or GUID.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Text to search in description, GUID, or library name.' },
+        },
+        required: ['query'],
+        additionalProperties: false,
+      },
+    },
+    {
       name: 'find_symbol',
       description: 'Find VB6 symbol definitions by exact name in the indexed workspace.',
       inputSchema: {
@@ -143,6 +164,18 @@ function listTools() {
       },
     },
     {
+      name: 'type_members',
+      description: 'List known members for a VB6 class or Type by name.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          typeName: { type: 'string', description: 'Class module or Type name.' },
+        },
+        required: ['typeName'],
+        additionalProperties: false,
+      },
+    },
+    {
       name: 'project_info',
       description: 'Return discovered .vbp project metadata, source directories, and external references.',
       inputSchema: {
@@ -196,6 +229,42 @@ function toolError(message: string) {
 }
 
 async function callTool(name: string, args: Record<string, unknown> = {}) {
+  if (name === 'list_projects') {
+    ensureIndex();
+    return toolResult({
+      workspaceRoot: workspaceConfig.rootDir,
+      indexedAt,
+      count: workspaceConfig.projects.length,
+      projects: workspaceConfig.projects.map((project) => ({
+        file: project.file,
+        name: project.name,
+        type: project.type,
+        componentCount: project.components.length,
+        referenceCount: project.references.length,
+        objectCount: project.objects.length,
+      })),
+    });
+  }
+
+  if (name === 'reference_info') {
+    ensureIndex();
+    const query = String(args.query).toLowerCase();
+    const matches = [...workspaceConfig.externalReferences, ...workspaceConfig.objectReferences]
+      .filter((reference) =>
+        reference.raw.toLowerCase().includes(query) ||
+        (reference.description || '').toLowerCase().includes(query) ||
+        (reference.guid || '').toLowerCase().includes(query) ||
+        (reference.libraryName || '').toLowerCase().includes(query),
+      );
+
+    return toolResult({
+      workspaceRoot: workspaceConfig.rootDir,
+      indexedAt,
+      count: matches.length,
+      matches,
+    });
+  }
+
   if (name === 'find_symbol') {
     const index = ensureIndex();
     const limit = Math.min(Math.max(Number(args.limit || 20), 1), 100);
@@ -353,6 +422,30 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
     });
   }
 
+  if (name === 'type_members') {
+    const index = ensureIndex();
+    const typeName = String(args.typeName).toLowerCase();
+    const matches = index.symbols.filter((symbol) =>
+      (symbol.scope === 'member' && symbol.containerName?.toLowerCase() === typeName) ||
+      (symbol.scope === 'module' && symbol.moduleName.toLowerCase() === typeName && symbol.kind !== 'Type' && symbol.kind !== 'Enum' && symbol.kind !== 'Implements'),
+    );
+
+    return toolResult({
+      workspaceRoot: workspaceConfig.rootDir,
+      indexedAt,
+      typeName: String(args.typeName),
+      count: matches.length,
+      matches: matches.map((symbol) => ({
+        name: symbol.name,
+        kind: symbol.kind,
+        line: symbol.line,
+        file: symbol.file,
+        signature: formatSignature(symbol),
+        returnType: symbol.returnType,
+      })),
+    });
+  }
+
   if (name === 'project_info') {
     ensureIndex();
     return toolResult({
@@ -409,7 +502,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '2.1.1',
+            version: '2.2.0',
           },
         },
       });

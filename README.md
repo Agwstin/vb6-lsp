@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-2.1.1-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-2.2.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-14%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-16%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -97,6 +97,9 @@ The built-in MCP server exposes:
 - `signature`
 - `module_info`
 - `project_info`
+- `list_projects`
+- `reference_info`
+- `type_members`
 - `index_stats`
 - `reindex_vb6`
 
@@ -219,6 +222,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 - contextual local/parameter-aware resolution for the main authoring features
 - member access when the receiver type is known
 - project/reference awareness from `.vbp`
+- richer MCP workflows for project and reference inspection
 - semantic tokens and basic quick fixes in the editor
 - official stdio MCP server included in the repo
 
@@ -236,5 +240,6 @@ Automated tests cover:
 - code actions for common diagnostics
 - project metadata and external reference parsing
 - basic type inference from common assignments
+- richer MCP workflows for projects, references, and type members
 - LSP end-to-end requests over stdio
 - MCP stdio tool exposure, indexing, and richer tool workflows

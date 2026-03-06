@@ -13,6 +13,9 @@ test('workspace config exposes project metadata and external references from .vb
 
   assert.equal(config.projects.length, 1);
   assert.equal(config.projects[0].name, 'AdvancedApp');
-  assert.ok(config.externalReferences.some((reference) => reference.description === 'OLE Automation'));
+  const ole = config.externalReferences.find((reference) => reference.description === 'OLE Automation');
+  assert.ok(ole);
+  assert.equal(ole.version, '2.0.0');
+  assert.equal(ole.libraryName, 'stdole2.tlb');
   assert.ok(config.objectReferences.some((reference) => reference.description === 'mscomctl.ocx'));
 });

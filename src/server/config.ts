@@ -21,6 +21,11 @@ export interface VB6ProjectReference {
   libraryPath?: string;
   description?: string;
   guid?: string;
+  version?: string;
+  majorVersion?: string;
+  minorVersion?: string;
+  libraryName?: string;
+  exists?: boolean;
 }
 
 export interface VB6ProjectMetadata {
@@ -223,6 +228,9 @@ function parseReferenceLine(kind: 'Reference' | 'Object', raw: string): VB6Proje
 
   let libraryPath;
   let description;
+  let version;
+  let majorVersion;
+  let minorVersion;
 
   if (kind === 'Object') {
     const semicolonIndex = raw.lastIndexOf(';');
@@ -231,8 +239,13 @@ function parseReferenceLine(kind: 'Reference' | 'Object', raw: string): VB6Proje
     }
   } else {
     const parts = raw.split('#');
+    majorVersion = parts.length >= 2 ? stripProjectValue(parts[1]) : undefined;
+    minorVersion = parts.length >= 3 ? stripProjectValue(parts[2]) : undefined;
     libraryPath = parts.length >= 4 ? stripProjectValue(parts[parts.length - 2]) : undefined;
     description = parts.length >= 1 ? stripProjectValue(parts[parts.length - 1]) : undefined;
+    if (majorVersion || minorVersion) {
+      version = `${majorVersion || '0'}.${minorVersion || '0'}`;
+    }
   }
 
   return {
@@ -241,6 +254,11 @@ function parseReferenceLine(kind: 'Reference' | 'Object', raw: string): VB6Proje
     libraryPath,
     description,
     guid: guidMatch ? guidMatch[0] : undefined,
+    version,
+    majorVersion,
+    minorVersion,
+    libraryName: libraryPath ? path.basename(libraryPath) : description,
+    exists: libraryPath ? fs.existsSync(libraryPath) : undefined,
   };
 }
 
