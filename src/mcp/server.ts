@@ -41,8 +41,7 @@ function ensureIndex(force = false) {
 
 function writeMessage(message: unknown) {
   const json = JSON.stringify(message);
-  const payload = `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
-  process.stdout.write(payload);
+  process.stdout.write(json + '\n');
 }
 
 function listTools() {
@@ -466,31 +465,21 @@ async function handleMessage(message: any) {
   }
 }
 
-let buffer = Buffer.alloc(0);
+let buffer = '';
 
 function drainBuffer() {
-  while (true) {
-    const headerEnd = buffer.indexOf('\r\n\r\n');
-    if (headerEnd === -1) return;
-
-    const header = buffer.slice(0, headerEnd).toString('utf8');
-    const match = header.match(/Content-Length:\s*(\d+)/i);
-    if (!match) {
-      throw new Error('Missing Content-Length header');
-    }
-
-    const contentLength = Number(match[1]);
-    const messageEnd = headerEnd + 4 + contentLength;
-    if (buffer.length < messageEnd) return;
-
-    const body = buffer.slice(headerEnd + 4, messageEnd).toString('utf8');
-    buffer = buffer.slice(messageEnd);
-    void handleMessage(JSON.parse(body));
+  const lines = buffer.split('\n');
+  buffer = lines.pop()!;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    void handleMessage(JSON.parse(trimmed));
   }
 }
 
-process.stdin.on('data', (chunk) => {
-  buffer = Buffer.concat([buffer, chunk]);
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (chunk: string) => {
+  buffer += chunk;
   drainBuffer();
 });
 

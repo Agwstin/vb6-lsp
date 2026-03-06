@@ -27,8 +27,7 @@ test('MCP server exposes tools and indexes a workspace from env configuration', 
   });
 
   function encode(message) {
-    const json = JSON.stringify(message);
-    return `Content-Length: ${Buffer.byteLength(json, 'utf8')}\r\n\r\n${json}`;
+    return JSON.stringify(message) + '\n';
   }
 
   child.stdin.write(encode({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {} } }));

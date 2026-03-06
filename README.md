@@ -98,6 +98,8 @@ The built-in MCP server exposes:
 - `index_stats`
 - `reindex_vb6`
 
+The stdio MCP transport has been validated with both Codex and Claude Code.
+
 ## Benchmark
 
 The repository includes a reproducible benchmark script:
@@ -138,6 +140,11 @@ args = ["C:/path/to/vb6-lsp/out/mcp/mcp/server.js"]
 env = { VB6_LSP_ROOT = "C:/path/to/workspace", VB6_LSP_PROJECT_FILES = "ProjectA/App.vbp;ProjectB/Tools.vbp", VB6_LSP_SOURCE_DIRS = "src;shared;forms" }
 ```
 
+Codex compatibility note:
+
+- validated against the built-in stdio MCP flow
+- no extra wrapper is required beyond a working `node` executable in the environment
+
 ## Use with Claude Code
 
 Example `~/.claude/mcpServers.json` entry:
@@ -155,6 +162,11 @@ Example `~/.claude/mcpServers.json` entry:
   }
 }
 ```
+
+Claude Code note:
+
+- if the MCP server does not appear after configuration changes, fully restart Claude Code
+- on some Windows setups it can be more reliable to point the MCP config at an explicit `node.exe` path
 
 ## Example prompts
 
