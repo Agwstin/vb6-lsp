@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { buildVB6Index, findReferences, searchCode } from '../server/indexer/mcp-bridge';
 import { resolveWorkspaceConfig, VB6ServerSettings } from '../server/config';
 import { findFileSymbols, formatSignature, readSymbolBody, summarizeModule } from './utils';
-import { analyzePacketHandler, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypoints, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow } from './analysis';
+import { analyzeModuleBundle, analyzePacketHandler, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypoints, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow } from './analysis';
 
 const workspaceConfig = resolveWorkspaceConfig({
   rootUri: process.env.VB6_LSP_ROOT ? `file:///${process.env.VB6_LSP_ROOT.replace(/\\/g, '/')}` : undefined,
@@ -147,6 +147,31 @@ function listTools() {
       inputSchema: {
         type: 'object',
         properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'analyze_symbol',
+      description: 'Return a bundled symbol analysis with definition, references, call graph hints, related symbols, and mutations.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Exact symbol name.' },
+          kind: { type: 'string', description: 'Optional symbol kind filter.' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'analyze_module',
+      description: 'Return a bundled module analysis with routines, controls, and notable symbols.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          file: { type: 'string', description: 'Filename or relative path suffix.' },
+        },
+        required: ['file'],
         additionalProperties: false,
       },
     },
@@ -369,6 +394,32 @@ function toolError(message: string) {
 }
 
 async function callTool(name: string, args: Record<string, unknown> = {}) {
+  if (name === 'analyze_symbol') {
+    const { index, derived } = ensureDerived();
+    const matches = (index.byName.get(String(args.name).toLowerCase()) || [])
+      .filter((symbol) => !args.kind || symbol.kind.toLowerCase() === String(args.kind).toLowerCase());
+    const references = getCachedReferences(derived, index, String(args.name), findReferences, 25);
+    const mutations = findStateMutations(index, String(args.name), 25);
+
+    return toolResult({
+      indexedAt,
+      analysis: analyzeSymbolBundle(index, derived, String(args.name), matches, references, mutations),
+    });
+  }
+
+  if (name === 'analyze_module') {
+    const { index, derived } = ensureDerived();
+    const fileMatch = findFileSymbols(index, String(args.file));
+    if (!fileMatch) {
+      return toolError(`File not found: ${String(args.file)}`);
+    }
+
+    return toolResult({
+      indexedAt,
+      analysis: analyzeModuleBundle(index, derived, fileMatch.filePath, fileMatch.symbols),
+    });
+  }
+
   if (name === 'explain_symbol') {
     const { index, derived } = ensureDerived();
     const matches = (index.byName.get(String(args.name).toLowerCase()) || [])
@@ -752,7 +803,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '2.6.0',
+            version: '3.0.0',
           },
         },
       });

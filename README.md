@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-2.6.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-3.0.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-21%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-22%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -13,7 +13,7 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 | Surface | Use case | Includes |
 | --- | --- | --- |
 | `LSP` | editors and IDE workflows | definition, references, hover, completion, rename, diagnostics, member access, folding |
-| `MCP` | agents and tool-driven workflows | symbol lookup, project info, call graph tracing, state mutations, function reading, summaries |
+| `MCP` | agents and tool-driven workflows | symbol lookup, bundled analysis, project info, call graph tracing, state mutations, summaries |
 
 ## Features
 
@@ -39,6 +39,7 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 - Built-in stdio MCP server for indexed VB6 workflows
 - Agent-first analysis tools for explanations, call flow, mutations, and entrypoints
 - Specialized workflows for packet handlers and UI forms
+- Bundled analysis tools for single-call symbol/module investigation
 
 ## Quick Start
 
@@ -116,6 +117,8 @@ The built-in MCP server exposes:
 - `summarize_module`
 - `analyze_packet_handler`
 - `analyze_ui_form`
+- `analyze_symbol`
+- `analyze_module`
 - `index_stats`
 - `reindex_vb6`
 
@@ -231,7 +234,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 
 ## Scope
 
-`2.1.0` is intended to be a full-featured practical release for VB6 navigation and indexed code-exploration workflows:
+`3.0.0` positions `vb6-lsp` as both a practical VB6 editor integration and a stable agent-first MCP analysis surface:
 
 - portable workspace discovery via `.vbp`
 - project-wide symbol search and navigation
@@ -243,6 +246,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 - richer MCP workflows for project and reference inspection
 - higher-level agent-first analysis workflows
 - specialized workflows for common legacy VB6 investigation tasks
+- bundled one-call analyses for symbols and modules
 - semantic tokens and richer quick fixes in the editor
 - official stdio MCP server included in the repo
 

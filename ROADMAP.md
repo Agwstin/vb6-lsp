@@ -38,6 +38,12 @@
 
 ## 3.0.0
 
-- [ ] Consolidate the agent-first MCP layer as a stable analysis surface
-- [ ] Publish the stronger workflows and summaries as the main differentiator of the project
-- [ ] Re-run validation and release documentation around the new MCP layer
+- [x] Consolidate the agent-first MCP layer as a stable analysis surface
+- [x] Publish the stronger workflows and summaries as the main differentiator of the project
+- [x] Re-run validation and release documentation around the new MCP layer
+
+## 3.1.0
+
+- [ ] Add unresolved symbol diagnostics and suggested fixes where possible
+- [ ] Improve semantic tokens classification for more usage sites
+- [ ] Expand more domain-agnostic analysis workflows

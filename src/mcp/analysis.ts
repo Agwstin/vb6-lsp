@@ -9,6 +9,7 @@ export interface DerivedCache {
   calleesByName: Map<string, Set<string>>;
   referencesByName: Map<string, Array<{ file: string; line: number; context: string }>>;
   moduleSummaries: Map<string, unknown>;
+  symbolAnalyses: Map<string, unknown>;
 }
 
 export function buildDerivedCache(index: MCPIndex): DerivedCache {
@@ -48,6 +49,7 @@ export function buildDerivedCache(index: MCPIndex): DerivedCache {
     calleesByName,
     referencesByName: new Map(),
     moduleSummaries: new Map(),
+    symbolAnalyses: new Map(),
   };
 }
 
@@ -267,6 +269,57 @@ export function analyzeUiForm(index: MCPIndex, derived: DerivedCache, filePath: 
       line: symbol.line,
     })),
     uiRoutines: routines.map((symbol) => ({
+      name: symbol.name,
+      kind: symbol.kind,
+      line: symbol.line,
+      signature: formatSignature(symbol),
+    })),
+  };
+}
+
+export function analyzeSymbolBundle(
+  index: MCPIndex,
+  derived: DerivedCache,
+  name: string,
+  symbols: MCPSymbol[],
+  references: Array<{ file: string; line: number; context: string }>,
+  mutations: Array<{ file: string; line: number; context: string; mutationKind: string }>,
+) {
+  const cacheKey = name.toLowerCase();
+  const cached = derived.symbolAnalyses.get(cacheKey);
+  if (cached) return cached;
+
+  const explanation = explainSymbol(index, derived, symbols);
+  const analysis = {
+    analysisKind: 'symbol',
+    name,
+    definitionCount: symbols.length,
+    explanation,
+    references,
+    callers: getCallers(derived, name),
+    callees: getCallees(derived, name),
+    related: findRelatedSymbols(index, derived, name),
+    mutations,
+    summary: explanation.summary,
+  };
+  derived.symbolAnalyses.set(cacheKey, analysis);
+  return analysis;
+}
+
+export function analyzeModuleBundle(index: MCPIndex, derived: DerivedCache, filePath: string, symbols: MCPSymbol[]) {
+  const base = summarizeModuleForAgents(index, derived, filePath, symbols) as any;
+  const controls = symbols.filter((symbol) => symbol.scope === 'member' && symbol.containerKind === 'Form');
+  const references = symbols.filter((symbol) => symbol.scope === 'module' && symbol.visibility === 'Public').slice(0, 15);
+
+  return {
+    analysisKind: 'module',
+    ...base,
+    controls: controls.map((symbol) => ({
+      name: symbol.name,
+      type: symbol.returnType || symbol.kind,
+      line: symbol.line,
+    })),
+    notableSymbols: references.map((symbol) => ({
       name: symbol.name,
       kind: symbol.kind,
       line: symbol.line,

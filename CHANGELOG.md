@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.0 - 2026-03-06
+
+- Consolidated the MCP layer into a stable agent-first analysis surface.
+- Added bundled analysis tools such as `analyze_symbol` and `analyze_module`.
+- Completed the progression from low-level search primitives toward higher-level explanation, tracing, mutation, entrypoint, and workflow-oriented tools.
+- Expanded the automated suite to `22/22` passing tests.
+
 ## 2.6.0 - 2026-03-06
 
 - Added specialized agent workflows such as `summarize_module`, `analyze_packet_handler`, and `analyze_ui_form`.
