@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.1 - 2026-03-06
+
+- Fixed the test runner command so CI works reliably on Windows runners.
+- Replaced the shell glob-based test invocation with a portable Node-based test launcher.
+
 ## 2.1.0 - 2026-03-06
 
 - Added semantic tokens for richer editor highlighting of indexed VB6 declarations.
