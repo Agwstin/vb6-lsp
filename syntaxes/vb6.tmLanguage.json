@@ -1,0 +1,97 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "VB6",
+  "scopeName": "source.vb6",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#keyword" },
+    { "include": "#storage" },
+    { "include": "#type" },
+    { "include": "#operator" },
+    { "include": "#constant" },
+    { "include": "#function-call" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.apostrophe.vb6",
+          "match": "'.*$"
+        },
+        {
+          "name": "comment.line.rem.vb6",
+          "match": "(?i)^\\s*Rem\\b.*$"
+        }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.double.vb6",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.vb6",
+          "match": "\"\""
+        }
+      ]
+    },
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.vb6",
+          "match": "&[Hh][0-9A-Fa-f]+&?"
+        },
+        {
+          "name": "constant.numeric.float.vb6",
+          "match": "\\b\\d+\\.\\d*([Ee][+-]?\\d+)?#?"
+        },
+        {
+          "name": "constant.numeric.integer.vb6",
+          "match": "\\b\\d+[&%!#]?"
+        }
+      ]
+    },
+    "keyword": {
+      "patterns": [
+        {
+          "name": "keyword.control.vb6",
+          "match": "(?i)\\b(If|Then|Else|ElseIf|End\\s+If|For|To|Step|Next|Do|Loop|While|Wend|Until|Select\\s+Case|Case|End\\s+Select|GoTo|GoSub|Return|On\\s+Error|Resume|Exit\\s+(Sub|Function|Property|For|Do)|With|End\\s+With|Each|In)\\b"
+        },
+        {
+          "name": "keyword.other.vb6",
+          "match": "(?i)\\b(Call|Set|Let|Get|New|ReDim|Preserve|Erase|RaiseEvent|Implements|Option\\s+Explicit|Option\\s+Compare|Option\\s+Base|Attribute|Debug|Print|Stop)\\b"
+        }
+      ]
+    },
+    "storage": {
+      "patterns": [
+        {
+          "name": "storage.type.function.vb6",
+          "match": "(?i)\\b(Sub|Function|Property|End\\s+Sub|End\\s+Function|End\\s+Property)\\b"
+        },
+        {
+          "name": "storage.type.vb6",
+          "match": "(?i)\\b(Type|End\\s+Type|Enum|End\\s+Enum|Dim|Private|Public|Friend|Static|Const|Declare|ByVal|ByRef|Optional|ParamArray|As|Lib|Alias)\\b"
+        }
+      ]
+    },
+    "type": {
+      "name": "support.type.vb6",
+      "match": "(?i)\\b(Boolean|Byte|Integer|Long|Single|Double|Currency|String|Variant|Date|Object|Nothing|Empty|Null|True|False|vbCrLf|vbNullString|vbNullChar|vbTab)\\b"
+    },
+    "operator": {
+      "name": "keyword.operator.vb6",
+      "match": "(?i)\\b(And|Or|Not|Xor|Eqv|Imp|Is|Like|Mod|TypeOf)\\b|[+\\-*/\\\\^&<>=]"
+    },
+    "constant": {
+      "name": "constant.language.vb6",
+      "match": "(?i)\\b(True|False|Nothing|Empty|Null|Me)\\b"
+    },
+    "function-call": {
+      "name": "entity.name.function.vb6",
+      "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()"
+    }
+  }
+}
