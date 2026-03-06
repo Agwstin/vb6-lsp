@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { buildVB6Index, findReferences, searchCode } from '../server/indexer/mcp-bridge';
 import { resolveWorkspaceConfig, VB6ServerSettings } from '../server/config';
 import { findFileSymbols, formatSignature, readSymbolBody, summarizeModule } from './utils';
-import { buildDerivedCache, DerivedCache, explainSymbol, findEntrypoints, findRelatedSymbols, findStateMutations, getCallees, getCallers, traceFlow } from './analysis';
+import { analyzePacketHandler, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypoints, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow } from './analysis';
 
 const workspaceConfig = resolveWorkspaceConfig({
   rootUri: process.env.VB6_LSP_ROOT ? `file:///${process.env.VB6_LSP_ROOT.replace(/\\/g, '/')}` : undefined,
@@ -147,6 +147,42 @@ function listTools() {
       inputSchema: {
         type: 'object',
         properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'summarize_module',
+      description: 'Return an agent-oriented module summary with key routines and notable counts.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          file: { type: 'string', description: 'Filename or relative path suffix.' },
+        },
+        required: ['file'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'analyze_packet_handler',
+      description: 'Analyze a likely packet/network handler with definition and lightweight call graph context.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Handler routine name.' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'analyze_ui_form',
+      description: 'Analyze a form or UI-heavy file with controls and likely UI routines.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          file: { type: 'string', description: 'Form filename or relative path suffix.' },
+        },
+        required: ['file'],
         additionalProperties: false,
       },
     },
@@ -337,6 +373,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
     const { index, derived } = ensureDerived();
     const matches = (index.byName.get(String(args.name).toLowerCase()) || [])
       .filter((symbol) => !args.kind || symbol.kind.toLowerCase() === String(args.kind).toLowerCase());
+    const references = getCachedReferences(derived, index, String(args.name), findReferences, 25);
 
     return toolResult({
       workspaceRoot: workspaceConfig.rootDir,
@@ -344,6 +381,40 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
       count: matches.length,
       matches,
       explanation: explainSymbol(index, derived, matches),
+      references,
+    });
+  }
+
+  if (name === 'summarize_module') {
+    const { index, derived } = ensureDerived();
+    const fileMatch = findFileSymbols(index, String(args.file));
+    if (!fileMatch) {
+      return toolError(`File not found: ${String(args.file)}`);
+    }
+
+    return toolResult({
+      indexedAt,
+      summary: summarizeModuleForAgents(index, derived, fileMatch.filePath, fileMatch.symbols),
+    });
+  }
+
+  if (name === 'analyze_packet_handler') {
+    const { index, derived } = ensureDerived();
+    return toolResult({
+      indexedAt,
+      analysis: analyzePacketHandler(index, derived, String(args.name)),
+    });
+  }
+
+  if (name === 'analyze_ui_form') {
+    const { index, derived } = ensureDerived();
+    const fileMatch = findFileSymbols(index, String(args.file));
+    if (!fileMatch) {
+      return toolError(`File not found: ${String(args.file)}`);
+    }
+    return toolResult({
+      indexedAt,
+      analysis: analyzeUiForm(index, derived, fileMatch.filePath, fileMatch.symbols),
     });
   }
 
@@ -681,7 +752,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '2.5.0',
+            version: '2.6.0',
           },
         },
       });

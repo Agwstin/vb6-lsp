@@ -32,9 +32,9 @@
 
 ## 2.6.0
 
-- [ ] Add specialized agent workflows such as analyze_packet_handler and analyze_ui_form
-- [ ] Improve result shapes for agent-oriented summaries and traces
-- [ ] Add more heuristics for state and flow analysis
+- [x] Add specialized agent workflows such as analyze_packet_handler and analyze_ui_form
+- [x] Improve result shapes for agent-oriented summaries and traces
+- [x] Add more heuristics for state and flow analysis
 
 ## 3.0.0
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.6.0 - 2026-03-06
+
+- Added specialized agent workflows such as `summarize_module`, `analyze_packet_handler`, and `analyze_ui_form`.
+- Improved result shapes for agent-oriented explanations and traces.
+- Added more heuristics for state and flow analysis.
+- Expanded the automated suite to `21/21` passing tests.
+
 ## 2.5.0 - 2026-03-06
 
 - Added agent-oriented analysis tools including `explain_symbol`, `find_callers`, `find_callees`, `trace_flow`, `find_related_symbols`, `find_state_mutations`, `find_network_entrypoints`, and `find_ui_entrypoints`.

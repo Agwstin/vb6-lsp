@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-2.5.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-2.6.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-20%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-21%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -38,6 +38,7 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 - Basic `.frm` designer/control awareness
 - Built-in stdio MCP server for indexed VB6 workflows
 - Agent-first analysis tools for explanations, call flow, mutations, and entrypoints
+- Specialized workflows for packet handlers and UI forms
 
 ## Quick Start
 
@@ -112,6 +113,9 @@ The built-in MCP server exposes:
 - `find_state_mutations`
 - `find_network_entrypoints`
 - `find_ui_entrypoints`
+- `summarize_module`
+- `analyze_packet_handler`
+- `analyze_ui_form`
 - `index_stats`
 - `reindex_vb6`
 
@@ -238,6 +242,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 - project/reference awareness from `.vbp`
 - richer MCP workflows for project and reference inspection
 - higher-level agent-first analysis workflows
+- specialized workflows for common legacy VB6 investigation tasks
 - semantic tokens and richer quick fixes in the editor
 - official stdio MCP server included in the repo
 
@@ -257,6 +262,7 @@ Automated tests cover:
 - basic type inference from common assignments
 - richer MCP workflows for projects, references, and type members
 - higher-level agent workflows for explanation, tracing, mutations, and entrypoint discovery
+- specialized analysis workflows for packet handlers and UI-heavy forms
 - `.frm` designer control indexing
 - member access inside `With` blocks
 - missing external project reference diagnostics

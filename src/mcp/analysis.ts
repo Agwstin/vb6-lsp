@@ -8,6 +8,7 @@ export interface DerivedCache {
   callersByName: Map<string, Set<string>>;
   calleesByName: Map<string, Set<string>>;
   referencesByName: Map<string, Array<{ file: string; line: number; context: string }>>;
+  moduleSummaries: Map<string, unknown>;
 }
 
 export function buildDerivedCache(index: MCPIndex): DerivedCache {
@@ -46,6 +47,7 @@ export function buildDerivedCache(index: MCPIndex): DerivedCache {
     callersByName,
     calleesByName,
     referencesByName: new Map(),
+    moduleSummaries: new Map(),
   };
 }
 
@@ -123,6 +125,21 @@ export function traceFlow(derived: DerivedCache, name: string, maxDepth = 3) {
   return trace;
 }
 
+export function getCachedReferences(
+  derived: DerivedCache,
+  index: MCPIndex,
+  name: string,
+  finder: (index: MCPIndex, name: string, maxResults: number) => Array<{ file: string; line: number; context: string }>,
+  maxResults = 50,
+) {
+  const key = `${name.toLowerCase()}:${maxResults}`;
+  const cached = derived.referencesByName.get(key);
+  if (cached) return cached;
+  const refs = finder(index, name, maxResults);
+  derived.referencesByName.set(key, refs);
+  return refs;
+}
+
 export function findStateMutations(index: MCPIndex, name: string, maxResults = 50) {
   const lower = name.toLowerCase();
   const results: Array<{ file: string; line: number; context: string; mutationKind: string }> = [];
@@ -192,6 +209,70 @@ export function findRelatedSymbols(index: MCPIndex, derived: DerivedCache, name:
       signature: formatSignature(symbol),
       matchReason: modules.has(symbol.moduleName.toLowerCase()) ? 'same-module' : symbol.name.toLowerCase().includes(lower) ? 'name-match' : 'call-graph',
     }));
+}
+
+export function summarizeModuleForAgents(index: MCPIndex, derived: DerivedCache, filePath: string, symbols: MCPSymbol[]) {
+  const cacheKey = filePath.toLowerCase();
+  const cached = derived.moduleSummaries.get(cacheKey);
+  if (cached) return cached;
+
+  const routines = symbols.filter((symbol) =>
+    symbol.scope === 'module' && (symbol.kind === 'Sub' || symbol.kind === 'Function' || symbol.kind === 'Property'),
+  );
+  const publicCount = symbols.filter((symbol) => symbol.visibility === 'Public').length;
+  const summary = {
+    file: filePath,
+    moduleName: symbols[0]?.moduleName || filePath,
+    totalSymbols: symbols.length,
+    routineCount: routines.length,
+    publicCount,
+    keyRoutines: routines.slice(0, 12).map((symbol) => ({
+      name: symbol.name,
+      kind: symbol.kind,
+      line: symbol.line,
+      signature: formatSignature(symbol),
+    })),
+    summary: `${symbols[0]?.moduleName || filePath} contains ${symbols.length} indexed symbols, ${routines.length} routines, and ${publicCount} public declarations.`,
+  };
+  derived.moduleSummaries.set(cacheKey, summary);
+  return summary;
+}
+
+export function analyzePacketHandler(index: MCPIndex, derived: DerivedCache, name: string) {
+  const symbols = (index.byName.get(name.toLowerCase()) || [])
+    .filter((symbol) => symbol.kind === 'Sub' || symbol.kind === 'Function' || symbol.kind === 'Property');
+  const explanation = explainSymbol(index, derived, symbols);
+  return {
+    ...explanation,
+    category: 'packet-handler',
+    likelyNetworkEntrypoint: true,
+  };
+}
+
+export function analyzeUiForm(index: MCPIndex, derived: DerivedCache, filePath: string, symbols: MCPSymbol[]) {
+  const controls = symbols.filter((symbol) => symbol.scope === 'member' && symbol.containerKind === 'Form');
+  const routines = symbols.filter((symbol) =>
+    symbol.scope === 'module' &&
+    (symbol.kind === 'Sub' || symbol.kind === 'Function' || symbol.kind === 'Property') &&
+    /(show|hide|render|click|keypress|mouse|load|focus)/i.test(symbol.name),
+  );
+
+  return {
+    ...summarizeModuleForAgents(index, derived, filePath, symbols),
+    category: 'ui-form',
+    controlCount: controls.length,
+    controls: controls.map((symbol) => ({
+      name: symbol.name,
+      type: symbol.returnType || symbol.kind,
+      line: symbol.line,
+    })),
+    uiRoutines: routines.map((symbol) => ({
+      name: symbol.name,
+      kind: symbol.kind,
+      line: symbol.line,
+      signature: formatSignature(symbol),
+    })),
+  };
 }
 
 function escapeRegex(str: string): string {
