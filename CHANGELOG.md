@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.0 - 2026-03-06
+
+- Added unresolved routine diagnostics with a quick fix to create stub routines.
+- Improved semantic token classification across more usage sites, including member-style access.
+- Added more domain-agnostic agent workflows such as `trace_inbound_flow`, `trace_outbound_flow`, and `analyze_state_symbol`.
+- Expanded the automated suite to `23/23` passing tests.
+
 ## 3.0.0 - 2026-03-06
 
 - Consolidated the MCP layer into a stable agent-first analysis surface.

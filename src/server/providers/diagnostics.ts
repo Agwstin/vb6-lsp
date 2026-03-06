@@ -15,8 +15,19 @@ import {
   END_BLOCK_RE,
   ATTRIBUTE_RE,
   readLogicalLine,
+  stripInlineComment,
 } from '../indexer/parser';
 import { normalizePath } from '../utils';
+import { resolveSymbolSet } from '../resolution';
+
+const VB6_KEYWORDS = new Set([
+  'as', 'byref', 'byval', 'call', 'case', 'const', 'dim', 'do', 'each', 'else', 'elseif',
+  'end', 'enum', 'event', 'exit', 'false', 'for', 'friend', 'function', 'get', 'global', 'goto',
+  'if', 'implements', 'in', 'is', 'let', 'loop', 'me', 'new', 'next', 'not', 'nothing', 'on',
+  'option', 'optional', 'or', 'paramarray', 'private', 'property', 'public', 'redim', 'rem',
+  'resume', 'select', 'set', 'static', 'step', 'sub', 'then', 'to', 'true', 'type', 'wend',
+  'while', 'with', 'withevents',
+]);
 
 export function computeDiagnostics(filePath: string, index: VB6Index, workspaceConfig?: VB6WorkspaceConfig): Diagnostic[] {
   let content: string;
@@ -89,6 +100,8 @@ export function computeDiagnostics(filePath: string, index: VB6Index, workspaceC
     indexLine = logical.endLine;
   }
 
+  collectUnresolvedRoutineDiagnostics(filePath, lines, index, diagnostics);
+
   if (!hasOptionExplicit) {
     diagnostics.push({
       severity: DiagnosticSeverity.Warning,
@@ -147,4 +160,38 @@ export function computeDiagnostics(filePath: string, index: VB6Index, workspaceC
   }
 
   return diagnostics;
+}
+
+function collectUnresolvedRoutineDiagnostics(
+  filePath: string,
+  lines: string[],
+  index: VB6Index,
+  diagnostics: Diagnostic[],
+): void {
+  const normalizedFile = normalizePath(filePath);
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const code = stripInlineComment(raw).trim();
+    if (!code) continue;
+
+    const callMatch = code.match(/^(?:Call\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/i);
+    if (!callMatch) continue;
+
+    const candidate = callMatch[1];
+    const lower = candidate.toLowerCase();
+    if (VB6_KEYWORDS.has(lower)) continue;
+    if (code.startsWith('Function ') || code.startsWith('Sub ') || code.startsWith('Property ')) continue;
+    if (code.startsWith('If ') || code.startsWith('For ') || code.startsWith('Do ') || code.startsWith('With ')) continue;
+
+    const resolved = resolveSymbolSet(index, candidate, filePath, i + 1);
+    if (resolved.definitions.length > 0) continue;
+
+    diagnostics.push({
+      severity: DiagnosticSeverity.Warning,
+      range: Range.create(i, raw.indexOf(candidate), i, raw.indexOf(candidate) + candidate.length),
+      message: `Unresolved routine '${candidate}'`,
+      source: 'vb6-lsp',
+    });
+  }
 }

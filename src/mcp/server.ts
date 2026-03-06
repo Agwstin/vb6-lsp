@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { buildVB6Index, findReferences, searchCode } from '../server/indexer/mcp-bridge';
 import { resolveWorkspaceConfig, VB6ServerSettings } from '../server/config';
 import { findFileSymbols, formatSignature, readSymbolBody, summarizeModule } from './utils';
-import { analyzeModuleBundle, analyzePacketHandler, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypoints, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow } from './analysis';
+import { analyzeModuleBundle, analyzePacketHandler, analyzeStateSymbol, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypoints, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow, traceInboundFlow, traceOutboundFlow } from './analysis';
 
 const workspaceConfig = resolveWorkspaceConfig({
   rootUri: process.env.VB6_LSP_ROOT ? `file:///${process.env.VB6_LSP_ROOT.replace(/\\/g, '/')}` : undefined,
@@ -147,6 +147,44 @@ function listTools() {
       inputSchema: {
         type: 'object',
         properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'trace_inbound_flow',
+      description: 'Trace callers inward toward a target routine.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Target routine name.' },
+          maxDepth: { type: 'integer', minimum: 1, maximum: 6, default: 3 },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'trace_outbound_flow',
+      description: 'Trace callees outward from a starting routine.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Starting routine name.' },
+          maxDepth: { type: 'integer', minimum: 1, maximum: 6, default: 3 },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'analyze_state_symbol',
+      description: 'Analyze a state-like symbol with mutations and lightweight inbound/outbound flow.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Variable or state symbol name.' },
+        },
+        required: ['name'],
         additionalProperties: false,
       },
     },
@@ -417,6 +455,33 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
     return toolResult({
       indexedAt,
       analysis: analyzeModuleBundle(index, derived, fileMatch.filePath, fileMatch.symbols),
+    });
+  }
+
+  if (name === 'trace_inbound_flow') {
+    const { derived } = ensureDerived();
+    return toolResult({
+      indexedAt,
+      name: String(args.name),
+      trace: traceInboundFlow(derived, String(args.name), Number(args.maxDepth || 3)),
+    });
+  }
+
+  if (name === 'trace_outbound_flow') {
+    const { derived } = ensureDerived();
+    return toolResult({
+      indexedAt,
+      name: String(args.name),
+      trace: traceOutboundFlow(derived, String(args.name), Number(args.maxDepth || 3)),
+    });
+  }
+
+  if (name === 'analyze_state_symbol') {
+    const { index, derived } = ensureDerived();
+    const mutations = findStateMutations(index, String(args.name), 50);
+    return toolResult({
+      indexedAt,
+      analysis: analyzeStateSymbol(index, derived, String(args.name), mutations),
     });
   }
 
@@ -803,7 +868,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '3.0.0',
+            version: '3.1.0',
           },
         },
       });

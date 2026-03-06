@@ -44,6 +44,12 @@
 
 ## 3.1.0
 
-- [ ] Add unresolved symbol diagnostics and suggested fixes where possible
-- [ ] Improve semantic tokens classification for more usage sites
-- [ ] Expand more domain-agnostic analysis workflows
+- [x] Add unresolved symbol diagnostics and suggested fixes where possible
+- [x] Improve semantic tokens classification for more usage sites
+- [x] Expand more domain-agnostic analysis workflows
+
+## 3.2.0
+
+- [ ] Reduce MCP latency for analysis-heavy tools
+- [ ] Add smarter ranking/default result trimming for large analyses
+- [ ] Expand entrypoint and state heuristics further

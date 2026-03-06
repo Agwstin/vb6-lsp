@@ -127,6 +127,32 @@ export function traceFlow(derived: DerivedCache, name: string, maxDepth = 3) {
   return trace;
 }
 
+export function traceInboundFlow(derived: DerivedCache, name: string, maxDepth = 3) {
+  const visited = new Set<string>();
+  const trace: Array<{ depth: number; from: string; to: string }> = [];
+  const queue: Array<{ depth: number; name: string }> = [{ depth: 0, name: name.toLowerCase() }];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) break;
+    if (current.depth >= maxDepth) continue;
+    if (visited.has(current.name)) continue;
+    visited.add(current.name);
+
+    const callers = getCallers(derived, current.name);
+    for (const caller of callers) {
+      trace.push({ depth: current.depth + 1, from: caller, to: current.name });
+      queue.push({ depth: current.depth + 1, name: caller });
+    }
+  }
+
+  return trace;
+}
+
+export function traceOutboundFlow(derived: DerivedCache, name: string, maxDepth = 3) {
+  return traceFlow(derived, name, maxDepth);
+}
+
 export function getCachedReferences(
   derived: DerivedCache,
   index: MCPIndex,
@@ -168,6 +194,26 @@ export function findStateMutations(index: MCPIndex, name: string, maxResults = 5
   }
 
   return results;
+}
+
+export function analyzeStateSymbol(
+  index: MCPIndex,
+  derived: DerivedCache,
+  name: string,
+  mutations: Array<{ file: string; line: number; context: string; mutationKind: string }>,
+) {
+  const symbols = index.byName.get(name.toLowerCase()) || [];
+  const explanation = explainSymbol(index, derived, symbols);
+  return {
+    analysisKind: 'state-symbol',
+    name,
+    explanation,
+    mutationCount: mutations.length,
+    mutations,
+    inbound: traceInboundFlow(derived, name, 2),
+    outbound: traceOutboundFlow(derived, name, 2),
+    summary: `${name} has ${mutations.length} mutation site(s) and ${explanation.callers.length} caller(s).`,
+  };
 }
 
 export function findEntrypoints(index: MCPIndex, mode: 'network' | 'ui') {

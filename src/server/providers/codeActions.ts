@@ -40,6 +40,12 @@ export function handleCodeActions(params: CodeActionParams): CodeAction[] {
       if (action) {
         actions.push(action);
       }
+      continue;
+    }
+
+    const unresolvedRoutineMatch = diagnostic.message.match(/^Unresolved routine '([^']+)'$/);
+    if (unresolvedRoutineMatch) {
+      actions.push(createStubRoutineAction(params.textDocument.uri, fileText, diagnostic, unresolvedRoutineMatch[1]));
     }
   }
 
@@ -106,6 +112,26 @@ function createChangeVisibilityAction(uri: string, text: string, diagnostic: Dia
 
   return {
     title: 'Change Public to Private',
+    kind: CodeActionKind.QuickFix,
+    diagnostics: [diagnostic],
+    edit,
+  };
+}
+
+function createStubRoutineAction(uri: string, text: string, diagnostic: Diagnostic, name: string): CodeAction {
+  const lines = text.split(/\r?\n/);
+  const insertLine = lines.length;
+  const body = `${insertLine > 0 ? '\r\n' : ''}Public Sub ${name}()\r\nEnd Sub\r\n`;
+  const edit: WorkspaceEdit = {
+    changes: {
+      [uri]: [
+        TextEdit.insert(Position(insertLine, 0), body),
+      ],
+    },
+  };
+
+  return {
+    title: `Create stub routine '${name}'`,
     kind: CodeActionKind.QuickFix,
     diagnostics: [diagnostic],
     edit,

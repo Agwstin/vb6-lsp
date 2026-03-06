@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-3.0.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-3.1.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-22%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-23%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -32,6 +32,7 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 - Semantic tokens for declarations and symbol usages
 - Code actions for common diagnostics
 - Diagnostics for missing block terminators, duplicate public symbols, and missing `Option Explicit`
+- Diagnostics for unresolved routines
 - Diagnostics for missing external project references
 - Basic type inference for common assignment patterns
 - `.vbp` project metadata and external reference parsing
@@ -119,6 +120,9 @@ The built-in MCP server exposes:
 - `analyze_ui_form`
 - `analyze_symbol`
 - `analyze_module`
+- `trace_inbound_flow`
+- `trace_outbound_flow`
+- `analyze_state_symbol`
 - `index_stats`
 - `reindex_vb6`
 
@@ -247,6 +251,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 - higher-level agent-first analysis workflows
 - specialized workflows for common legacy VB6 investigation tasks
 - bundled one-call analyses for symbols and modules
+- directional flow tracing and state-oriented analysis
 - semantic tokens and richer quick fixes in the editor
 - official stdio MCP server included in the repo
 
