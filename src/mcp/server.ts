@@ -3,6 +3,7 @@ import { buildVB6Index, findReferences, searchCode } from '../server/indexer/mcp
 import { resolveWorkspaceConfig, VB6ServerSettings } from '../server/config';
 import { findFileSymbols, formatSignature, readSymbolBody, summarizeModule } from './utils';
 import { analyzeModuleBundle, analyzePacketHandler, analyzeProjectReferenceImpact, analyzeStartupFlow, analyzeStateSymbol, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypointsCached, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow, traceInboundFlow, traceOutboundFlow } from './analysis';
+import { createTelemetryContext, recordTelemetry, summarizeToolResult } from './telemetry';
 
 const workspaceConfig = resolveWorkspaceConfig({
   rootUri: process.env.VB6_LSP_ROOT ? `file:///${process.env.VB6_LSP_ROOT.replace(/\\/g, '/')}` : undefined,
@@ -12,6 +13,7 @@ const workspaceConfig = resolveWorkspaceConfig({
 let cachedIndex: ReturnType<typeof buildVB6Index> | null = null;
 let indexedAt: string | null = null;
 let derivedCache: DerivedCache | null = null;
+const telemetry = createTelemetryContext(workspaceConfig.rootDir);
 
 function extractSettingsFromEnv(): VB6ServerSettings {
   return {
@@ -34,20 +36,22 @@ function splitEnvList(value?: string): string[] | undefined {
 }
 
 function ensureIndex(force = false) {
+  const cacheHit = Boolean(cachedIndex) && !force;
   if (!cachedIndex || force) {
     cachedIndex = buildVB6Index(workspaceConfig.rootDir, workspaceConfig.sourceDirs);
     indexedAt = new Date().toISOString();
     derivedCache = null;
   }
-  return cachedIndex;
+  return { index: cachedIndex, cacheHit };
 }
 
 function ensureDerived(force = false) {
-  const index = ensureIndex(force);
+  const indexState = ensureIndex(force);
+  const derivedCacheHit = Boolean(derivedCache) && !force;
   if (!derivedCache || force) {
-    derivedCache = buildDerivedCache(index);
+    derivedCache = buildDerivedCache(indexState.index);
   }
-  return { index, derived: derivedCache };
+  return { index: indexState.index, derived: derivedCache, indexCacheHit: indexState.cacheHit, derivedCacheHit };
 }
 
 function writeMessage(message: unknown) {
@@ -608,7 +612,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'find_state_mutations') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     return toolResult({
       indexedAt,
       name: String(args.name),
@@ -669,14 +673,14 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'find_symbol') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     const limit = Math.min(Math.max(Number(args.limit || 20), 1), 100);
     const includeBody = args.includeBody !== false;
     const maxBodyLines = Math.min(Math.max(Number(args.maxBodyLines || 120), 1), 300);
     const matches = (index.byName.get(String(args.name).toLowerCase()) || [])
-      .filter((symbol) => !args.kind || symbol.kind.toLowerCase() === String(args.kind).toLowerCase())
+      .filter((symbol: any) => !args.kind || symbol.kind.toLowerCase() === String(args.kind).toLowerCase())
       .slice(0, limit)
-      .map((symbol) => ({
+      .map((symbol: any) => ({
         ...symbol,
         parsedSignature: formatSignature(symbol),
         body: includeBody ? readSymbolBody(index, symbol, maxBodyLines) : undefined,
@@ -691,7 +695,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'list_symbols') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     const limit = Math.min(Math.max(Number(args.limit || 60), 1), 200);
     const kindFilter = args.kind ? String(args.kind).toLowerCase() : '';
     const nameFilter = args.filter ? String(args.filter).toLowerCase() : '';
@@ -708,10 +712,10 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
     }
 
     const matches = symbols
-      .filter((symbol) => !kindFilter || symbol.kind.toLowerCase() === kindFilter)
-      .filter((symbol) => !nameFilter || symbol.name.toLowerCase().includes(nameFilter))
+      .filter((symbol: any) => !kindFilter || symbol.kind.toLowerCase() === kindFilter)
+      .filter((symbol: any) => !nameFilter || symbol.name.toLowerCase().includes(nameFilter))
       .slice(0, limit)
-      .map((symbol) => ({
+      .map((symbol: any) => ({
         file: symbol.file,
         moduleName: symbol.moduleName,
         name: symbol.name,
@@ -732,7 +736,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'find_references') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     const maxResults = Math.min(Math.max(Number(args.maxResults || 30), 1), 200);
     const references = findReferences(index, String(args.name), maxResults);
     return toolResult({
@@ -744,7 +748,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'search_code') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     const maxResults = Math.min(Math.max(Number(args.maxResults || 30), 1), 200);
     const results = searchCode(index, String(args.query), {
       scope: args.scope ? String(args.scope) : undefined,
@@ -759,7 +763,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'read_function') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     const maxBodyLines = Math.min(Math.max(Number(args.maxBodyLines || 240), 1), 400);
     const fileMatch = findFileSymbols(index, String(args.file));
     if (!fileMatch) {
@@ -787,10 +791,10 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'signature') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     const matches = (index.byName.get(String(args.name).toLowerCase()) || [])
-      .filter((symbol) => !args.kind || symbol.kind.toLowerCase() === String(args.kind).toLowerCase())
-      .map((symbol) => ({
+      .filter((symbol: any) => !args.kind || symbol.kind.toLowerCase() === String(args.kind).toLowerCase())
+      .map((symbol: any) => ({
         file: symbol.file,
         moduleName: symbol.moduleName,
         name: symbol.name,
@@ -812,7 +816,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'module_info') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     const fileMatch = findFileSymbols(index, String(args.file));
     if (!fileMatch) {
       return toolError(`File not found: ${String(args.file)}`);
@@ -826,7 +830,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'type_members') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     const typeName = String(args.typeName).toLowerCase();
     const matches = index.symbols.filter((symbol) =>
       (symbol.scope === 'member' && symbol.containerName?.toLowerCase() === typeName) ||
@@ -863,7 +867,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'index_stats') {
-    const index = ensureIndex();
+    const { index } = ensureIndex();
     return toolResult({
       workspaceRoot: workspaceConfig.rootDir,
       projectFiles: workspaceConfig.projectFiles,
@@ -877,7 +881,7 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'reindex_vb6') {
-    const index = ensureIndex(true);
+    const { index } = ensureIndex(true);
     return toolResult({
       workspaceRoot: workspaceConfig.rootDir,
       projectFiles: workspaceConfig.projectFiles,
@@ -905,7 +909,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '3.3.0',
+            version: '3.3.1',
           },
         },
       });
@@ -928,7 +932,23 @@ async function handleMessage(message: any) {
     }
 
     if (message.method === 'tools/call') {
-      const result = await callTool(message.params?.name, message.params?.arguments || {});
+      const toolName = String(message.params?.name || '');
+      const started = Date.now();
+      const hadIndex = Boolean(cachedIndex);
+      const hadDerived = Boolean(derivedCache);
+      const result = await callTool(toolName, message.params?.arguments || {});
+      const telemetrySummary = summarizeToolResult(result);
+      recordTelemetry(telemetry, {
+        ts: new Date().toISOString(),
+        workspace_id: telemetry.workspaceId,
+        tool_name: toolName,
+        duration_ms: Date.now() - started,
+        result_count: telemetrySummary.resultCount,
+        output_chars: telemetrySummary.outputChars,
+        index_cache_hit: hadIndex,
+        derived_cache_hit: hadDerived,
+        error: null,
+      });
       writeMessage({
         jsonrpc: '2.0',
         id: message.id,
@@ -948,6 +968,19 @@ async function handleMessage(message: any) {
       });
     }
   } catch (error) {
+    if (message.method === 'tools/call') {
+      recordTelemetry(telemetry, {
+        ts: new Date().toISOString(),
+        workspace_id: telemetry.workspaceId,
+        tool_name: String(message.params?.name || ''),
+        duration_ms: 0,
+        result_count: null,
+        output_chars: 0,
+        index_cache_hit: Boolean(cachedIndex),
+        derived_cache_hit: Boolean(derivedCache),
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     if (typeof message.id !== 'undefined') {
       writeMessage({
         jsonrpc: '2.0',

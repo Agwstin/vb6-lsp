@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-3.3.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-3.3.1-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-25%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-26%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -130,6 +130,28 @@ The built-in MCP server exposes:
 - `reindex_vb6`
 
 The stdio MCP transport has been validated with both Codex and Claude Code.
+
+## Telemetry
+
+The MCP server supports **local, opt-in telemetry** for measuring real-world tool usage.
+
+Enable it with environment variables:
+
+```bash
+VB6_LSP_TELEMETRY_ENABLED=true
+VB6_LSP_TELEMETRY_DIR=/path/to/telemetry
+```
+
+It writes JSONL events to `mcp-usage.jsonl` with non-sensitive metadata such as:
+
+- tool name
+- duration
+- result count
+- output size
+- cache hit state
+- error presence
+
+It does **not** log prompts, source file contents, or full MCP payload bodies.
 
 ## Benchmark
 

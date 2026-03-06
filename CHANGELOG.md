@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.1 - 2026-03-06
+
+- Added local opt-in MCP telemetry for tool usage analysis.
+- Records non-sensitive per-tool metadata such as duration, counts, output size, cache state, and errors.
+- Added tests covering telemetry logging behavior.
+
 ## 3.3.0 - 2026-03-06
 
 - Added safer unresolved-symbol analysis for `With` receivers.
