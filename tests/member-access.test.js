@@ -35,6 +35,13 @@ test('member access completion resolves class members and UDT fields', () => {
   );
   assert.ok(udtItems.some((item) => item.label === 'Name'));
   assert.ok(udtItems.some((item) => item.label === 'Level'));
+
+  const withItems = handleCompletion(
+    { textDocument: { uri }, position: { line: 15, character: 20 } },
+    { get: () => document },
+    indexer.getIndex(),
+  );
+  assert.ok(withItems.some((item) => item.label === 'DisplayName'));
 });
 
 test('member access definition resolves class properties', () => {

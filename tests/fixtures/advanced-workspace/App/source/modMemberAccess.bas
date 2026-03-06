@@ -9,3 +9,10 @@ End Sub
 Public Sub DemoUdtMemberAccess()
     CurrentPlayer.
 End Sub
+
+Public Sub DemoWithMemberAccess()
+    Dim worker As clsWorker
+    With worker
+        .DisplayName
+    End With
+End Sub

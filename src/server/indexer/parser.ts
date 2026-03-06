@@ -51,6 +51,22 @@ export const EVENT_RE = /^(?:(Public|Private)\s+)?Event\s+(\w+)/i;
 export const IMPLEMENTS_RE = /^Implements\s+([\w.]+)/i;
 
 /**
+ * Matches With blocks.
+ */
+export const WITH_RE = /^With\s+(.+)$/i;
+
+/**
+ * Matches End With.
+ */
+export const END_WITH_RE = /^End\s+With\b/i;
+
+/**
+ * Matches VB6 form/control designer Begin lines.
+ * Example: Begin VB.CommandButton cmdAccept
+ */
+export const BEGIN_CONTROL_RE = /^Begin\s+([\w.]+)\s+(\w+)/i;
+
+/**
  * Matches End Sub/Function/Property/Type/Enum
  */
 export const END_BLOCK_RE = /^End\s+(Sub|Function|Property|Type|Enum)\b/i;

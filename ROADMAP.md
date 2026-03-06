@@ -14,6 +14,12 @@
 
 ## 2.3.0
 
-- [ ] Improve form/class awareness for more VB6 designer-heavy projects
-- [ ] Expand completion and navigation around member access edge cases
-- [ ] Add more real-world fixture projects and compatibility checks
+- [x] Improve form/class awareness for more VB6 designer-heavy projects
+- [x] Expand completion and navigation around member access edge cases
+- [x] Add more real-world fixture projects and compatibility checks
+
+## 2.4.0
+
+- [ ] Add diagnostics for unresolved symbols and unsupported references
+- [ ] Improve semantic tokens coverage beyond declarations
+- [ ] Add more editor-facing quick fixes

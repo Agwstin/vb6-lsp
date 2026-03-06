@@ -37,7 +37,7 @@ export interface VB6Symbol {
   returnType: string;
   accessor?: 'Get' | 'Let' | 'Set';
   containerName?: string;
-  containerKind?: 'Sub' | 'Function' | 'Property' | 'Type';
+  containerKind?: 'Sub' | 'Function' | 'Property' | 'Type' | 'Class' | 'Form';
   containerLine?: number;
 }
 

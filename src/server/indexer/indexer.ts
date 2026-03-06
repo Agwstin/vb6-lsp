@@ -14,6 +14,7 @@ import {
   VARIABLE_RE,
   EVENT_RE,
   IMPLEMENTS_RE,
+  BEGIN_CONTROL_RE,
   END_BLOCK_RE,
   VB_NAME_RE,
   ATTRIBUTE_RE,
@@ -128,6 +129,7 @@ export class VB6Indexer {
     const normPath = normalizePath(filePath);
     const relPath = path.relative(this.rootDir, filePath).replace(/\\/g, '/');
     const moduleName = this.detectModuleName(filePath, lines);
+    const fileExtension = path.extname(filePath).toLowerCase();
     const routines = this.collectRoutines(lines);
     const routinesByLine = new Map<number, RoutineContext>(routines.map((routine) => [routine.line, routine]));
 
@@ -193,6 +195,33 @@ export class VB6Indexer {
       }
 
       const currentRoutine = this.findRoutineAtLine(routines, lineNum);
+
+      if (fileExtension === '.frm') {
+        const controlMatch = statement.match(BEGIN_CONTROL_RE);
+        if (controlMatch) {
+          const controlType = controlMatch[1].split('.').pop() || controlMatch[1];
+          symbols.push({
+            name: controlMatch[2],
+            kind: 'Field',
+            visibility: 'Public',
+            scope: 'member',
+            moduleName,
+            file: filePath,
+            relPath,
+            line: lineNum,
+            endLine: logical.endLine,
+            signature: buildSignature(statement),
+            params: [],
+            returnType: controlType,
+            containerName: moduleName,
+            containerKind: 'Form',
+            containerLine: 1,
+          });
+
+          index = logical.endLine;
+          continue;
+        }
+      }
 
       const implementsMatch = statement.match(IMPLEMENTS_RE);
       if (implementsMatch && !currentRoutine && !openTypeSymbol && !openEnumSymbol) {

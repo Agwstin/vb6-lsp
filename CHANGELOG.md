@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.0 - 2026-03-06
+
+- Added form/control awareness for `.frm` designer controls.
+- Added support for member access inside `With ... End With` blocks.
+- Improved document symbol output for member-like symbols that do not have an explicit parent symbol.
+- Added more real-world compatibility fixtures and expanded the suite to `17/17` passing tests.
+
 ## 2.2.0 - 2026-03-06
 
 - Expanded type inference to follow assignments from typed variables and typed factory functions.

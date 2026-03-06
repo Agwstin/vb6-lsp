@@ -37,7 +37,12 @@ export function handleDocumentSymbol(
     const children = routineChildren.get(key);
     if (children && children.length > 0) {
       symbol.children = children.sort(compareDocumentSymbols);
+      routineChildren.delete(key);
     }
+  }
+
+  for (const children of routineChildren.values()) {
+    topLevel.push(...children);
   }
 
   return topLevel.sort(compareDocumentSymbols);
