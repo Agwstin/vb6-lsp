@@ -26,6 +26,18 @@
 
 ## 2.5.0
 
-- [ ] Add higher-level analysis tools such as explain_symbol and trace_flow
-- [ ] Add caches for repeated agent-oriented queries
-- [ ] Improve result ranking and summarization for LLM consumption
+- [x] Add higher-level analysis tools such as explain_symbol and trace_flow
+- [x] Add caches for repeated agent-oriented queries
+- [x] Improve result ranking and summarization for LLM consumption
+
+## 2.6.0
+
+- [ ] Add specialized agent workflows such as analyze_packet_handler and analyze_ui_form
+- [ ] Improve result shapes for agent-oriented summaries and traces
+- [ ] Add more heuristics for state and flow analysis
+
+## 3.0.0
+
+- [ ] Consolidate the agent-first MCP layer as a stable analysis surface
+- [ ] Publish the stronger workflows and summaries as the main differentiator of the project
+- [ ] Re-run validation and release documentation around the new MCP layer

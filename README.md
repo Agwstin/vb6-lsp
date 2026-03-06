@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-2.4.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-2.5.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-19%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-20%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -13,7 +13,7 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 | Surface | Use case | Includes |
 | --- | --- | --- |
 | `LSP` | editors and IDE workflows | definition, references, hover, completion, rename, diagnostics, member access, folding |
-| `MCP` | agents and tool-driven workflows | symbol lookup, project info, code search, function reading, signatures, module summaries |
+| `MCP` | agents and tool-driven workflows | symbol lookup, project info, call graph tracing, state mutations, function reading, summaries |
 
 ## Features
 
@@ -37,6 +37,7 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 - `.vbp` project metadata and external reference parsing
 - Basic `.frm` designer/control awareness
 - Built-in stdio MCP server for indexed VB6 workflows
+- Agent-first analysis tools for explanations, call flow, mutations, and entrypoints
 
 ## Quick Start
 
@@ -103,6 +104,14 @@ The built-in MCP server exposes:
 - `list_projects`
 - `reference_info`
 - `type_members`
+- `explain_symbol`
+- `find_callers`
+- `find_callees`
+- `trace_flow`
+- `find_related_symbols`
+- `find_state_mutations`
+- `find_network_entrypoints`
+- `find_ui_entrypoints`
 - `index_stats`
 - `reindex_vb6`
 
@@ -228,6 +237,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 - basic form/control awareness for `.frm` files
 - project/reference awareness from `.vbp`
 - richer MCP workflows for project and reference inspection
+- higher-level agent-first analysis workflows
 - semantic tokens and richer quick fixes in the editor
 - official stdio MCP server included in the repo
 
@@ -246,6 +256,7 @@ Automated tests cover:
 - project metadata and external reference parsing
 - basic type inference from common assignments
 - richer MCP workflows for projects, references, and type members
+- higher-level agent workflows for explanation, tracing, mutations, and entrypoint discovery
 - `.frm` designer control indexing
 - member access inside `With` blocks
 - missing external project reference diagnostics

@@ -5,6 +5,7 @@ Object={831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.1#0; mscomctl.ocx
 Class=clsWorker; source\clsWorker.cls
 Form=source\frmMain.frm
 Module=modFactories; source\modFactories.bas
+Module=modNetwork; source\modNetwork.bas
 Module=modTypes; source\modTypes.bas
 Module=modCompletion; source\modCompletion.bas
 Module=modInference; source\modInference.bas

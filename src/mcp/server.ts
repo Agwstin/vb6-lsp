@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { buildVB6Index, findReferences, searchCode } from '../server/indexer/mcp-bridge';
 import { resolveWorkspaceConfig, VB6ServerSettings } from '../server/config';
 import { findFileSymbols, formatSignature, readSymbolBody, summarizeModule } from './utils';
+import { buildDerivedCache, DerivedCache, explainSymbol, findEntrypoints, findRelatedSymbols, findStateMutations, getCallees, getCallers, traceFlow } from './analysis';
 
 const workspaceConfig = resolveWorkspaceConfig({
   rootUri: process.env.VB6_LSP_ROOT ? `file:///${process.env.VB6_LSP_ROOT.replace(/\\/g, '/')}` : undefined,
@@ -10,6 +11,7 @@ const workspaceConfig = resolveWorkspaceConfig({
 
 let cachedIndex: ReturnType<typeof buildVB6Index> | null = null;
 let indexedAt: string | null = null;
+let derivedCache: DerivedCache | null = null;
 
 function extractSettingsFromEnv(): VB6ServerSettings {
   return {
@@ -35,8 +37,17 @@ function ensureIndex(force = false) {
   if (!cachedIndex || force) {
     cachedIndex = buildVB6Index(workspaceConfig.rootDir, workspaceConfig.sourceDirs);
     indexedAt = new Date().toISOString();
+    derivedCache = null;
   }
   return cachedIndex;
+}
+
+function ensureDerived(force = false) {
+  const index = ensureIndex(force);
+  if (!derivedCache || force) {
+    derivedCache = buildDerivedCache(index);
+  }
+  return { index, derived: derivedCache };
 }
 
 function writeMessage(message: unknown) {
@@ -46,6 +57,99 @@ function writeMessage(message: unknown) {
 
 function listTools() {
   return [
+    {
+      name: 'explain_symbol',
+      description: 'Return a higher-level explanation of a symbol including likely definition, call graph context, and related modules.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Exact symbol name.' },
+          kind: { type: 'string', description: 'Optional symbol kind filter.' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'find_callers',
+      description: 'Find routines that call a given VB6 routine.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Routine name.' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'find_callees',
+      description: 'Find routines called by a given VB6 routine.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Routine name.' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'trace_flow',
+      description: 'Follow a partial call flow outward from a starting routine.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Starting routine name.' },
+          maxDepth: { type: 'integer', minimum: 1, maximum: 6, default: 3 },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'find_related_symbols',
+      description: 'Find symbols related by module or lightweight call-graph heuristics.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Anchor symbol name.' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'find_state_mutations',
+      description: 'Find assignment-style mutations of a variable or state symbol.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Variable or state symbol name.' },
+          maxResults: { type: 'integer', minimum: 1, maximum: 200, default: 50 },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'find_network_entrypoints',
+      description: 'List likely network-related routines in legacy VB6 projects.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'find_ui_entrypoints',
+      description: 'List likely UI-related routines in legacy VB6 projects.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
     {
       name: 'list_projects',
       description: 'List discovered VB6 projects in the current workspace.',
@@ -229,6 +333,81 @@ function toolError(message: string) {
 }
 
 async function callTool(name: string, args: Record<string, unknown> = {}) {
+  if (name === 'explain_symbol') {
+    const { index, derived } = ensureDerived();
+    const matches = (index.byName.get(String(args.name).toLowerCase()) || [])
+      .filter((symbol) => !args.kind || symbol.kind.toLowerCase() === String(args.kind).toLowerCase());
+
+    return toolResult({
+      workspaceRoot: workspaceConfig.rootDir,
+      indexedAt,
+      count: matches.length,
+      matches,
+      explanation: explainSymbol(index, derived, matches),
+    });
+  }
+
+  if (name === 'find_callers') {
+    const { derived } = ensureDerived();
+    return toolResult({
+      indexedAt,
+      name: String(args.name),
+      callers: getCallers(derived, String(args.name)),
+    });
+  }
+
+  if (name === 'find_callees') {
+    const { derived } = ensureDerived();
+    return toolResult({
+      indexedAt,
+      name: String(args.name),
+      callees: getCallees(derived, String(args.name)),
+    });
+  }
+
+  if (name === 'trace_flow') {
+    const { derived } = ensureDerived();
+    return toolResult({
+      indexedAt,
+      name: String(args.name),
+      trace: traceFlow(derived, String(args.name), Number(args.maxDepth || 3)),
+    });
+  }
+
+  if (name === 'find_related_symbols') {
+    const { index, derived } = ensureDerived();
+    return toolResult({
+      indexedAt,
+      name: String(args.name),
+      related: findRelatedSymbols(index, derived, String(args.name)),
+    });
+  }
+
+  if (name === 'find_state_mutations') {
+    const index = ensureIndex();
+    return toolResult({
+      indexedAt,
+      name: String(args.name),
+      mutations: findStateMutations(index, String(args.name), Number(args.maxResults || 50)),
+    });
+  }
+
+  if (name === 'find_network_entrypoints') {
+    const index = ensureIndex();
+    return toolResult({
+      indexedAt,
+      entrypoints: findEntrypoints(index, 'network'),
+    });
+  }
+
+  if (name === 'find_ui_entrypoints') {
+    const index = ensureIndex();
+    return toolResult({
+      indexedAt,
+      entrypoints: findEntrypoints(index, 'ui'),
+    });
+  }
+
   if (name === 'list_projects') {
     ensureIndex();
     return toolResult({
@@ -502,7 +681,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '2.4.0',
+            version: '2.5.0',
           },
         },
       });

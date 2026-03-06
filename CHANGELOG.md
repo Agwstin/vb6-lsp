@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.0 - 2026-03-06
+
+- Added agent-oriented analysis tools including `explain_symbol`, `find_callers`, `find_callees`, `trace_flow`, `find_related_symbols`, `find_state_mutations`, `find_network_entrypoints`, and `find_ui_entrypoints`.
+- Added a derived MCP cache for repeated agent-oriented analyses such as call-graph exploration.
+- Improved result shapes for agent consumption with summaries, related modules, likely definitions, and lightweight match reasons.
+- Expanded the automated suite to `20/20` passing tests.
+
 ## 2.4.0 - 2026-03-06
 
 - Added diagnostics for missing external project references on files that belong to affected `.vbp` projects.
