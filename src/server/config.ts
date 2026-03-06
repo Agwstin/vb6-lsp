@@ -9,13 +9,46 @@ export interface VB6ServerSettings {
   preferProjectFiles?: boolean;
 }
 
+export interface VB6ProjectComponent {
+  kind: 'Module' | 'Class' | 'Form' | 'UserControl' | 'Designer';
+  name: string;
+  path: string;
+}
+
+export interface VB6ProjectReference {
+  kind: 'Reference' | 'Object';
+  raw: string;
+  libraryPath?: string;
+  description?: string;
+  guid?: string;
+}
+
+export interface VB6ProjectMetadata {
+  file: string;
+  name?: string;
+  type?: string;
+  components: VB6ProjectComponent[];
+  references: VB6ProjectReference[];
+  objects: VB6ProjectReference[];
+}
+
 export interface VB6WorkspaceConfig {
   rootDir: string;
   projectFiles: string[];
   sourceDirs: string[];
+  projects: VB6ProjectMetadata[];
+  externalReferences: VB6ProjectReference[];
+  objectReferences: VB6ProjectReference[];
 }
 
-const SOURCE_FILE_PREFIXES = ['Module=', 'Class=', 'Form=', 'UserControl=', 'Designer='];
+const COMPONENT_PREFIXES = new Map<string, VB6ProjectComponent['kind']>([
+  ['Module=', 'Module'],
+  ['Class=', 'Class'],
+  ['Form=', 'Form'],
+  ['UserControl=', 'UserControl'],
+  ['Designer=', 'Designer'],
+]);
+
 const IGNORED_DIRS = new Set([
   '.git',
   '.svn',
@@ -38,8 +71,9 @@ export function resolveWorkspaceConfig(options: {
   const discoveredProjectFiles = explicitProjectFiles.length > 0 ? explicitProjectFiles : discoverProjectFiles(rootDir);
   const preferProjectFiles = options.settings?.preferProjectFiles !== false;
 
+  const projects = discoveredProjectFiles.map(parseProjectFile).filter((project): project is VB6ProjectMetadata => Boolean(project));
   const sourceDirsFromProjects = preferProjectFiles
-    ? collectSourceDirsFromProjectFiles(discoveredProjectFiles)
+    ? dedupePaths(projects.flatMap((project) => project.components.map((component) => path.dirname(component.path))))
     : [];
   const configuredSourceDirs = resolveConfiguredPaths(rootDir, options.settings?.sourcePaths)
     .filter((value) => fs.existsSync(value))
@@ -55,6 +89,9 @@ export function resolveWorkspaceConfig(options: {
     rootDir,
     projectFiles: discoveredProjectFiles,
     sourceDirs,
+    projects,
+    externalReferences: dedupeReferences(projects.flatMap((project) => project.references)),
+    objectReferences: dedupeReferences(projects.flatMap((project) => project.objects)),
   };
 }
 
@@ -116,40 +153,114 @@ function discoverProjectFiles(rootDir: string): string[] {
   return dedupePaths(results);
 }
 
-function collectSourceDirsFromProjectFiles(projectFiles: string[]): string[] {
-  const directories: string[] = [];
+function parseProjectFile(projectFile: string): VB6ProjectMetadata | null {
+  let lines: string[];
+  try {
+    lines = fs.readFileSync(projectFile, 'latin1').split(/\r?\n/);
+  } catch {
+    return null;
+  }
 
-  for (const projectFile of projectFiles) {
-    let lines: string[];
-    try {
-      lines = fs.readFileSync(projectFile, 'latin1').split(/\r?\n/);
-    } catch {
+  const projectDir = path.dirname(projectFile);
+  const components: VB6ProjectComponent[] = [];
+  const references: VB6ProjectReference[] = [];
+  const objects: VB6ProjectReference[] = [];
+  let name;
+  let type;
+
+  for (const line of lines) {
+    if (line.startsWith('Name=')) {
+      name = stripProjectValue(line.substring('Name='.length));
       continue;
     }
 
-    const projectDir = path.dirname(projectFile);
-
-    for (const line of lines) {
-      const prefix = SOURCE_FILE_PREFIXES.find((candidate) => line.startsWith(candidate));
-      if (!prefix) continue;
-
-      const rawValue = line.substring(prefix.length).trim();
-      const relativePath = extractProjectFilePath(rawValue);
-      if (!relativePath) continue;
-
-      const fullPath = path.resolve(projectDir, relativePath);
-      if (!fs.existsSync(fullPath)) continue;
-      directories.push(path.dirname(fullPath));
+    if (line.startsWith('Type=')) {
+      type = stripProjectValue(line.substring('Type='.length));
+      continue;
     }
+
+    if (line.startsWith('Reference=')) {
+      references.push(parseReferenceLine('Reference', line.substring('Reference='.length).trim()));
+      continue;
+    }
+
+    if (line.startsWith('Object=')) {
+      objects.push(parseReferenceLine('Object', line.substring('Object='.length).trim()));
+      continue;
+    }
+
+    const componentEntry = [...COMPONENT_PREFIXES.entries()].find(([prefix]) => line.startsWith(prefix));
+    if (!componentEntry) continue;
+
+    const [prefix, kind] = componentEntry;
+    const rawValue = line.substring(prefix.length).trim();
+    const componentPath = extractProjectFilePath(rawValue);
+    if (!componentPath) continue;
+
+    const componentName = extractComponentName(rawValue, componentPath);
+    const fullPath = path.resolve(projectDir, componentPath);
+    if (!fs.existsSync(fullPath)) continue;
+
+    components.push({
+      kind,
+      name: componentName,
+      path: fullPath,
+    });
   }
 
-  return dedupePaths(directories);
+  return {
+    file: projectFile,
+    name,
+    type,
+    components,
+    references,
+    objects,
+  };
+}
+
+function parseReferenceLine(kind: 'Reference' | 'Object', raw: string): VB6ProjectReference {
+  const guidMatch = raw.match(/\{[^}]+\}/);
+
+  let libraryPath;
+  let description;
+
+  if (kind === 'Object') {
+    const semicolonIndex = raw.lastIndexOf(';');
+    if (semicolonIndex >= 0) {
+      description = stripProjectValue(raw.substring(semicolonIndex + 1));
+    }
+  } else {
+    const parts = raw.split('#');
+    libraryPath = parts.length >= 4 ? stripProjectValue(parts[parts.length - 2]) : undefined;
+    description = parts.length >= 1 ? stripProjectValue(parts[parts.length - 1]) : undefined;
+  }
+
+  return {
+    kind,
+    raw,
+    libraryPath,
+    description,
+    guid: guidMatch ? guidMatch[0] : undefined,
+  };
 }
 
 function extractProjectFilePath(value: string): string | null {
   const semicolonIndex = value.lastIndexOf(';');
   const candidate = semicolonIndex >= 0 ? value.substring(semicolonIndex + 1).trim() : value.trim();
   return candidate || null;
+}
+
+function extractComponentName(rawValue: string, componentPath: string): string {
+  const semicolonIndex = rawValue.lastIndexOf(';');
+  if (semicolonIndex >= 0) {
+    const left = rawValue.substring(0, semicolonIndex).trim();
+    if (left) return stripProjectValue(left);
+  }
+  return path.basename(componentPath, path.extname(componentPath));
+}
+
+function stripProjectValue(value: string): string {
+  return value.replace(/^"|"$/g, '').trim();
 }
 
 function defaultSourceDirs(rootDir: string): string[] {
@@ -174,6 +285,20 @@ function dedupePaths(values: string[]): string[] {
     if (seen.has(normalized)) continue;
     seen.add(normalized);
     results.push(path.resolve(value));
+  }
+
+  return results;
+}
+
+function dedupeReferences(values: VB6ProjectReference[]): VB6ProjectReference[] {
+  const seen = new Set<string>();
+  const results: VB6ProjectReference[] = [];
+
+  for (const value of values) {
+    const key = `${value.kind}:${value.guid ?? ''}:${value.libraryPath ?? ''}:${value.description ?? ''}:${value.raw}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push(value);
   }
 
   return results;

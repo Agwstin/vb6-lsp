@@ -144,6 +144,15 @@ function listTools() {
       },
     },
     {
+      name: 'project_info',
+      description: 'Return discovered .vbp project metadata, source directories, and external references.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
       name: 'index_stats',
       description: 'Return a quick summary of the current VB6 index cache.',
       inputSchema: {
@@ -345,12 +354,27 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
     });
   }
 
+  if (name === 'project_info') {
+    ensureIndex();
+    return toolResult({
+      workspaceRoot: workspaceConfig.rootDir,
+      projectFiles: workspaceConfig.projectFiles,
+      sourceDirs: workspaceConfig.sourceDirs,
+      projects: workspaceConfig.projects,
+      externalReferences: workspaceConfig.externalReferences,
+      objectReferences: workspaceConfig.objectReferences,
+      indexedAt,
+    });
+  }
+
   if (name === 'index_stats') {
     const index = ensureIndex();
     return toolResult({
       workspaceRoot: workspaceConfig.rootDir,
       projectFiles: workspaceConfig.projectFiles,
       sourceDirs: workspaceConfig.sourceDirs,
+      projectCount: workspaceConfig.projects.length,
+      externalReferenceCount: workspaceConfig.externalReferences.length,
       indexedAt,
       files: index.files.length,
       symbols: index.symbols.length,
@@ -386,7 +410,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '1.0.0',
+            version: '2.0.0',
           },
         },
       });

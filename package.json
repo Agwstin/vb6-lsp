@@ -2,7 +2,7 @@
   "name": "vb6-lsp",
   "displayName": "VB6 Language Server",
   "description": "Language Server Protocol support for Visual Basic 6 (.bas, .cls, .frm)",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "publisher": "vb6lsp",
   "license": "MIT",
   "engines": {
@@ -71,6 +71,7 @@
     "lsp:stdio": "node out/server/server.js --stdio",
     "mcp:stdio": "node out/mcp/mcp/server.js",
     "benchmark": "npm run build:all && node scripts/benchmark-vs-grep.mjs",
+    "package:vsix": "npx @vscode/vsce package",
     "test": "npm run build:all && node --test tests/**/*.test.js",
     "watch": "concurrently \"tsc -w -p tsconfig.json\" \"tsc -w -p tsconfig.server.json\"",
     "postinstall": "cd . && echo Done"

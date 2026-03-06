@@ -18,6 +18,7 @@ import { handleCompletion } from './providers/completion';
 import { handleSignatureHelp } from './providers/signatureHelp';
 import { computeDiagnostics } from './providers/diagnostics';
 import { handlePrepareRename, handleRename } from './providers/rename';
+import { handleFoldingRanges } from './providers/foldingRanges';
 import { uriToPath } from './utils';
 import { resolveWorkspaceConfig, VB6ServerSettings, VB6WorkspaceConfig } from './config';
 
@@ -57,6 +58,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
       renameProvider: {
         prepareProvider: true,
       },
+      foldingRangeProvider: true,
     },
   };
 });
@@ -196,6 +198,15 @@ connection.onRenameRequest((params) => {
   }
 });
 
+connection.onFoldingRanges((params) => {
+  try {
+    return indexer ? handleFoldingRanges(params, indexer.getIndex()) : [];
+  } catch (error) {
+    connection.console.error(`FoldingRange error: ${error}`);
+    return [];
+  }
+});
+
 connection.onShutdown(async () => {
   if (watcher) {
     await watcher.stop();
@@ -218,6 +229,7 @@ async function rebuildIndex(reason: 'initialized' | 'configuration'): Promise<vo
     rootDir: workspaceConfig.rootDir,
     sourceDirCount: workspaceConfig.sourceDirs.length,
     projectFileCount: workspaceConfig.projectFiles.length,
+    externalReferenceCount: workspaceConfig.externalReferences.length,
   });
 
   try {
@@ -232,6 +244,8 @@ async function rebuildIndex(reason: 'initialized' | 'configuration'): Promise<vo
       rootDir: workspaceConfig.rootDir,
       sourceDirs: workspaceConfig.sourceDirs,
       projectFiles: workspaceConfig.projectFiles,
+      projectCount: workspaceConfig.projects.length,
+      externalReferenceCount: workspaceConfig.externalReferences.length,
     });
 
     connection.console.log(

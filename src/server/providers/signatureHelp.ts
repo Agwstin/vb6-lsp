@@ -8,6 +8,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VB6Index } from '../indexer/types';
 import { uriToPath } from '../utils';
 import { resolveSymbolSet } from '../resolution';
+import { resolveMemberSymbols } from '../memberAccess';
 
 export function handleSignatureHelp(
   params: SignatureHelpParams,
@@ -21,20 +22,33 @@ export function handleSignatureHelp(
   const offset = doc.offsetAt(params.position);
 
   // Walk backwards to find the function name before the opening paren
-  const { funcName, activeParam } = findFunctionContext(text, offset);
+  const { funcName, receiverName, activeParam } = findFunctionContext(text, offset);
   if (!funcName) return null;
 
-  const resolved = resolveSymbolSet(
-    index,
-    funcName,
-    uriToPath(params.textDocument.uri),
-    params.position.line + 1,
-  );
-  if (resolved.definitions.length === 0) return null;
+  const resolved = receiverName
+    ? resolveMemberSymbols(
+        index,
+        doc,
+        uriToPath(params.textDocument.uri),
+        params.position.line + 1,
+        receiverName,
+        funcName,
+      )
+    : null;
+
+  const symbols = resolved
+    ? resolved.symbols
+    : resolveSymbolSet(
+        index,
+        funcName,
+        uriToPath(params.textDocument.uri),
+        params.position.line + 1,
+      ).definitions;
+  if (symbols.length === 0) return null;
 
   const signatures: SignatureInformation[] = [];
 
-  for (const sym of resolved.definitions) {
+  for (const sym of symbols) {
     if (sym.params.length === 0 && sym.kind !== 'Sub' && sym.kind !== 'Function' && sym.kind !== 'Declare') {
       continue;
     }
@@ -72,7 +86,7 @@ export function handleSignatureHelp(
 /**
  * Walk backwards from cursor to find function name and active parameter index.
  */
-function findFunctionContext(text: string, offset: number): { funcName: string | null; activeParam: number } {
+function findFunctionContext(text: string, offset: number): { funcName: string | null; receiverName: string | null; activeParam: number } {
   let depth = 0;
   let commaCount = 0;
   let inString = false;
@@ -101,7 +115,20 @@ function findFunctionContext(text: string, offset: number): { funcName: string |
         }
 
         const funcName = text.substring(nameStart, nameEnd);
-        return { funcName: funcName || null, activeParam: commaCount };
+        let receiverName = null;
+        let receiverCursor = nameStart;
+        while (receiverCursor > 0 && /\s/.test(text[receiverCursor - 1])) receiverCursor--;
+        if (receiverCursor > 0 && text[receiverCursor - 1] === '.') {
+          receiverCursor--;
+          while (receiverCursor > 0 && /\s/.test(text[receiverCursor - 1])) receiverCursor--;
+          let receiverStart = receiverCursor;
+          while (receiverStart > 0 && /[a-zA-Z0-9_]/.test(text[receiverStart - 1])) {
+            receiverStart--;
+          }
+          receiverName = text.substring(receiverStart, receiverCursor) || null;
+        }
+
+        return { funcName: funcName || null, receiverName, activeParam: commaCount };
       }
       depth--;
     } else if (ch === ',' && depth === 0) {
@@ -115,10 +142,10 @@ function findFunctionContext(text: string, offset: number): { funcName: string |
       while (checkPos >= 0 && text[checkPos] === ' ') checkPos--;
       if (checkPos < 0 || text[checkPos] !== '_') {
         // Not a continuation — stop searching
-        return { funcName: null, activeParam: 0 };
+        return { funcName: null, receiverName: null, activeParam: 0 };
       }
     }
   }
 
-  return { funcName: null, activeParam: 0 };
+  return { funcName: null, receiverName: null, activeParam: 0 };
 }

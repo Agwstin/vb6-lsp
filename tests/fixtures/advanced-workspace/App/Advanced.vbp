@@ -1,0 +1,10 @@
+Type=Exe
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\System32\stdole2.tlb#OLE Automation
+Object={831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.1#0; mscomctl.ocx
+Class=clsWorker; source\clsWorker.cls
+Module=modTypes; source\modTypes.bas
+Module=modCompletion; source\modCompletion.bas
+Module=modInference; source\modInference.bas
+Module=modMemberAccess; source\modMemberAccess.bas
+Startup="Sub Main"
+Name="AdvancedApp"

@@ -20,7 +20,7 @@ export function handleDocumentSymbol(
   const topLevel: DocumentSymbol[] = [];
 
   for (const symbol of symbols) {
-    if (symbol.scope === 'parameter' || symbol.scope === 'local') {
+    if (symbol.scope === 'parameter' || symbol.scope === 'local' || symbol.scope === 'member') {
       if (!symbol.containerLine) continue;
 
       const children = routineChildren.get(symbol.containerLine) || [];
@@ -77,6 +77,8 @@ function mapSymbolKind(kind: VB6SymbolKind): SymbolKind {
     case 'Variable': return SymbolKind.Variable;
     case 'Event': return SymbolKind.Event;
     case 'Parameter': return SymbolKind.Variable;
+    case 'Field': return SymbolKind.Field;
+    case 'Implements': return SymbolKind.Interface;
     default: return SymbolKind.Variable;
   }
 }

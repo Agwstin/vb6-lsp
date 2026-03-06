@@ -8,6 +8,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VB6Index, VB6Symbol, VB6SymbolKind } from '../indexer/types';
 import { getWordAtPosition, uriToPath, normalizePath } from '../utils';
 import { findEnclosingRoutine } from '../resolution';
+import { getMemberAccessContext, resolveMemberSymbols } from '../memberAccess';
 
 const MAX_COMPLETIONS = 100;
 
@@ -21,6 +22,34 @@ export function handleCompletion(
 
   const text = doc.getText();
   const offset = doc.offsetAt(params.position);
+  const currentFilePath = uriToPath(params.textDocument.uri);
+  const currentFile = normalizePath(currentFilePath);
+  const routine = findEnclosingRoutine(index, currentFile, params.position.line + 1);
+
+  const memberAccess = getMemberAccessContext(doc, params.position.line, params.position.character);
+  if (memberAccess) {
+    const resolvedMember = resolveMemberSymbols(
+      index,
+      doc,
+      currentFilePath,
+      params.position.line + 1,
+      memberAccess.receiverName,
+    );
+    if (!resolvedMember) return [];
+
+    return resolvedMember.symbols
+      .filter((symbol) => !memberAccess.memberPrefix || symbol.name.toLowerCase().startsWith(memberAccess.memberPrefix.toLowerCase()))
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .slice(0, MAX_COMPLETIONS)
+      .map((symbol) => ({
+        label: symbol.name,
+        kind: mapCompletionKind(symbol.kind),
+        detail: `${resolvedMember.typeName} member`,
+        documentation: symbol.signature,
+        insertTextFormat: InsertTextFormat.PlainText,
+      }));
+  }
+
   let prefixStart = offset;
   while (prefixStart > 0 && /[a-zA-Z0-9_]/.test(text[prefixStart - 1])) {
     prefixStart--;
@@ -29,8 +58,6 @@ export function handleCompletion(
   const prefix = text.substring(prefixStart, offset).toLowerCase();
   if (prefix.length < 1) return [];
 
-  const currentFile = normalizePath(uriToPath(params.textDocument.uri));
-  const routine = findEnclosingRoutine(index, currentFile, params.position.line + 1);
   const results: Array<{ symbol: VB6Symbol; score: number }> = [];
   const seen = new Set<string>();
 
@@ -68,6 +95,9 @@ function isAccessible(symbol: VB6Symbol, currentFile: string, routineLine?: numb
 
   if (symbol.scope === 'parameter' || symbol.scope === 'local') {
     return sameFile && symbol.containerLine === routineLine;
+  }
+  if (symbol.scope === 'member') {
+    return false;
   }
 
   if (symbol.visibility === 'Public') return true;
@@ -109,6 +139,8 @@ function mapCompletionKind(kind: VB6SymbolKind): CompletionItemKind {
     case 'Variable': return CompletionItemKind.Variable;
     case 'Event': return CompletionItemKind.Event;
     case 'Parameter': return CompletionItemKind.Variable;
+    case 'Field': return CompletionItemKind.Field;
+    case 'Implements': return CompletionItemKind.Interface;
     default: return CompletionItemKind.Text;
   }
 }

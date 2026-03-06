@@ -46,6 +46,11 @@ export const VARIABLE_RE = /^(Public|Private|Dim|Global|Static)\s+/i;
 export const EVENT_RE = /^(?:(Public|Private)\s+)?Event\s+(\w+)/i;
 
 /**
+ * Matches Implements statements in class modules.
+ */
+export const IMPLEMENTS_RE = /^Implements\s+([\w.]+)/i;
+
+/**
  * Matches End Sub/Function/Property/Type/Enum
  */
 export const END_BLOCK_RE = /^End\s+(Sub|Function|Property|Type|Enum)\b/i;
@@ -71,6 +76,11 @@ export interface VariableDeclaration {
   name: string;
   type: string;
   withEvents: boolean;
+}
+
+export interface TypeFieldDeclaration {
+  name: string;
+  type: string;
 }
 
 export interface IdentifierOccurrence {
@@ -265,6 +275,21 @@ export function parseVariableDeclarations(statement: string): VariableDeclaratio
   return splitCommaAware(rest)
     .map((part) => parseSingleVariablePart(part.trim(), visibilityKeyword, withEvents))
     .filter((item): item is VariableDeclaration => Boolean(item));
+}
+
+export function parseTypeFieldDeclaration(statement: string): TypeFieldDeclaration | null {
+  const code = stripInlineComment(statement).trim();
+  if (!code || /^(Public|Private|Friend|Dim|Global|Static)\b/i.test(code)) {
+    return null;
+  }
+
+  const match = code.match(/^(\w+)(?:\(.*?\))?\s*(?:As\s+(?:New\s+)?([\w.]+))?$/i);
+  if (!match) return null;
+
+  return {
+    name: match[1],
+    type: match[2] || 'Variant',
+  };
 }
 
 export function splitCommaAware(value: string): string[] {

@@ -227,7 +227,7 @@ function toMarkdown(summary) {
   }).join('\n');
 
   return `# Benchmark\n\n` +
-    `Workspace: \`${summary.rootDir}\`\n\n` +
+    `Workspace: user-provided VB6 workspace\n\n` +
     `Files indexed: **${summary.files}**\n\n` +
     `Symbols indexed: **${summary.symbols}**\n\n` +
     `| Benchmark | vb6-lsp | git grep | Winner | Notes |\n` +

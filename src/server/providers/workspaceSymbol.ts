@@ -53,6 +53,8 @@ function mapSymbolKind(kind: VB6Symbol['kind']): SymbolKind {
     case 'Declare': return SymbolKind.Function;
     case 'Variable': return SymbolKind.Variable;
     case 'Event': return SymbolKind.Event;
+    case 'Field': return SymbolKind.Field;
+    case 'Implements': return SymbolKind.Interface;
     default: return SymbolKind.Variable;
   }
 }

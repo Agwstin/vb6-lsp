@@ -16,9 +16,11 @@ export type VB6SymbolKind =
   | 'Declare'
   | 'Variable'
   | 'Event'
-  | 'Parameter';
+  | 'Parameter'
+  | 'Field'
+  | 'Implements';
 
-export type VB6SymbolScope = 'module' | 'local' | 'parameter';
+export type VB6SymbolScope = 'module' | 'local' | 'parameter' | 'member';
 
 export interface VB6Symbol {
   name: string;
@@ -35,7 +37,7 @@ export interface VB6Symbol {
   returnType: string;
   accessor?: 'Get' | 'Let' | 'Set';
   containerName?: string;
-  containerKind?: 'Sub' | 'Function' | 'Property';
+  containerKind?: 'Sub' | 'Function' | 'Property' | 'Type';
   containerLine?: number;
 }
 

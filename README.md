@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-1.0.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-2.0.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-4%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-11%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -12,8 +12,8 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 
 | Surface | Use case | Includes |
 | --- | --- | --- |
-| `LSP` | editors and IDE workflows | definition, references, hover, completion, rename, diagnostics |
-| `MCP` | agents and tool-driven workflows | symbol lookup, code search, function reading, signatures, module summaries |
+| `LSP` | editors and IDE workflows | definition, references, hover, completion, rename, diagnostics, member access, folding |
+| `MCP` | agents and tool-driven workflows | symbol lookup, project info, code search, function reading, signatures, module summaries |
 
 ## Features
 
@@ -26,7 +26,11 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 - Completion
 - Signature help
 - Rename
+- Member access on typed variables and UDTs
+- Folding ranges for multiline VB6 symbols
 - Diagnostics for missing block terminators, duplicate public symbols, and missing `Option Explicit`
+- Basic type inference for common assignment patterns
+- `.vbp` project metadata and external reference parsing
 - Built-in stdio MCP server for indexed VB6 workflows
 
 ## Quick Start
@@ -90,6 +94,7 @@ The built-in MCP server exposes:
 - `read_function`
 - `signature`
 - `module_info`
+- `project_info`
 - `index_stats`
 - `reindex_vb6`
 
@@ -105,11 +110,11 @@ Example snapshot from a large real-world VB6 workspace:
 
 | Benchmark | vb6-lsp | git grep | Winner |
 | --- | ---: | ---: | --- |
-| Index startup | 403.67 ms | n/a | grep |
-| Exact symbol lookup | 0.00 ms | 114.12 ms | lsp |
-| Reference search | 2.07 ms | 112.73 ms | lsp |
-| Scoped text search | 0.37 ms | 58.71 ms | lsp |
-| Unscoped text search | 26.17 ms | 112.46 ms | lsp |
+| Index startup | 448.92 ms | n/a | grep |
+| Exact symbol lookup | 0.00 ms | 122.17 ms | lsp |
+| Reference search | 2.18 ms | 116.36 ms | lsp |
+| Scoped text search | 0.54 ms | 67.00 ms | lsp |
+| Unscoped text search | 36.20 ms | 122.96 ms | lsp |
 
 Full benchmark notes: [docs/benchmark.md](docs/benchmark.md)
 
@@ -178,6 +183,7 @@ npm run build:all
 npm run lsp:stdio
 npm run mcp:stdio
 npm run benchmark -- --root "C:/path/to/workspace" --source-dirs "src;forms;shared"
+npm run package:vsix
 npm test
 ```
 
@@ -192,11 +198,13 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 
 ## Scope
 
-`1.0.0` is intended to be stable for practical VB6 navigation and indexed code-exploration workflows:
+`2.0.0` is intended to be a full-featured practical release for VB6 navigation and indexed code-exploration workflows:
 
 - portable workspace discovery via `.vbp`
 - project-wide symbol search and navigation
 - contextual local/parameter-aware resolution for the main authoring features
+- member access when the receiver type is known
+- project/reference awareness from `.vbp`
 - official stdio MCP server included in the repo
 
 It is not a full VB6 compiler or full COM/type-inference engine.
@@ -207,5 +215,9 @@ Automated tests cover:
 
 - `.vbp` config discovery
 - indexer behavior for module symbols, properties, locals, and parameters
+- member access on class modules and UDT fields
+- folding ranges for multiline VB6 symbols
+- project metadata and external reference parsing
+- basic type inference from common assignments
 - LSP end-to-end requests over stdio
 - MCP stdio tool exposure, indexing, and richer tool workflows

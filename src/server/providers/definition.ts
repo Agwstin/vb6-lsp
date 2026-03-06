@@ -7,6 +7,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VB6Index } from '../indexer/types';
 import { getWordAtPosition, pathToUri, uriToPath } from '../utils';
 import { resolveSymbolSet } from '../resolution';
+import { getMemberAccessContext, resolveMemberSymbols } from '../memberAccess';
 
 export function handleDefinition(
   params: DefinitionParams,
@@ -15,6 +16,24 @@ export function handleDefinition(
 ): Location[] | null {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return null;
+
+  const memberAccess = getMemberAccessContext(doc, params.position.line, params.position.character);
+  if (memberAccess && memberAccess.memberName) {
+    const resolvedMember = resolveMemberSymbols(
+      index,
+      doc,
+      uriToPath(params.textDocument.uri),
+      params.position.line + 1,
+      memberAccess.receiverName,
+      memberAccess.memberName,
+    );
+    if (resolvedMember && resolvedMember.symbols.length > 0) {
+      return resolvedMember.symbols.map((sym) => ({
+        uri: pathToUri(sym.file),
+        range: Range.create(sym.line - 1, 0, sym.line - 1, 0),
+      }));
+    }
+  }
 
   const word = getWordAtPosition(doc, params.position.line, params.position.character);
   if (!word) return null;

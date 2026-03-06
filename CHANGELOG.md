@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.0 - 2026-03-06
+
+- Added typed member access for completion, definition, hover, and signature help when the receiver type is known.
+- Added Type-field indexing and `Implements` indexing for richer semantic analysis.
+- Added `.vbp` project metadata parsing for project names, external references, and object references.
+- Added basic type inference for common local assignment patterns such as `Set x = New SomeClass`.
+- Added folding ranges for multiline VB6 routines and blocks.
+- Added `project_info` MCP tooling plus richer project/index stats.
+- Expanded fixtures and tests to cover member access, folding ranges, project metadata, type inference, and additional parser edge cases.
+- Added a reproducible benchmark script and benchmark documentation.
+- Added a VS Code packaging script for generating `.vsix` artifacts.
+
+## 1.2.0 - 2026-03-06
+
+- Added basic type inference from declarations and common assignments.
+- Added deeper `.vbp` project/reference parsing.
+- Exposed project/reference metadata through MCP.
+
+## 1.1.0 - 2026-03-06
+
+- Improved parser coverage for more declaration edge cases.
+- Added more fixtures and regression tests.
+- Improved completion ranking and contextual relevance.
+
 ## 1.0.0 - 2026-03-06
 
 - Removed hardcoded workspace-specific assumptions from the LSP server.

@@ -13,6 +13,7 @@ import {
   CONST_RE,
   VARIABLE_RE,
   EVENT_RE,
+  IMPLEMENTS_RE,
   END_BLOCK_RE,
   VB_NAME_RE,
   ATTRIBUTE_RE,
@@ -22,6 +23,7 @@ import {
   buildSignature,
   readLogicalLine,
   parseVariableDeclarations,
+  parseTypeFieldDeclaration,
 } from './parser';
 import { normalizePath } from '../utils';
 
@@ -192,6 +194,27 @@ export class VB6Indexer {
 
       const currentRoutine = this.findRoutineAtLine(routines, lineNum);
 
+      const implementsMatch = statement.match(IMPLEMENTS_RE);
+      if (implementsMatch && !currentRoutine && !openTypeSymbol && !openEnumSymbol) {
+        symbols.push({
+          name: implementsMatch[1],
+          kind: 'Implements',
+          visibility: 'Private',
+          scope: 'module',
+          moduleName,
+          file: filePath,
+          relPath,
+          line: lineNum,
+          endLine: logical.endLine,
+          signature: buildSignature(statement),
+          params: [],
+          returnType: '',
+        });
+
+        index = logical.endLine;
+        continue;
+      }
+
       const declareMatch = statement.match(DECLARE_RE);
       if (declareMatch) {
         const visibility = (declareMatch[1] || 'Public') as 'Public' | 'Private';
@@ -319,6 +342,32 @@ export class VB6Indexer {
           containerKind: currentRoutine?.kind,
           containerLine: currentRoutine?.line,
         });
+
+        index = logical.endLine;
+        continue;
+      }
+
+      if (openTypeSymbol) {
+        const field = parseTypeFieldDeclaration(statement);
+        if (field) {
+          symbols.push({
+            name: field.name,
+            kind: 'Field',
+            visibility: openTypeSymbol.visibility,
+            scope: 'member',
+            moduleName,
+            file: filePath,
+            relPath,
+            line: lineNum,
+            endLine: logical.endLine,
+            signature: buildSignature(statement),
+            params: [],
+            returnType: field.type,
+            containerName: openTypeSymbol.name,
+            containerKind: 'Type',
+            containerLine: openTypeSymbol.line,
+          });
+        }
 
         index = logical.endLine;
         continue;
