@@ -1,0 +1,98 @@
+{
+  "name": "vb6-lsp",
+  "displayName": "VB6 Language Server",
+  "description": "Language Server Protocol support for Visual Basic 6 (.bas, .cls, .frm)",
+  "version": "1.0.0",
+  "publisher": "vb6lsp",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:vb6"
+  ],
+  "main": "./out/client/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "vb6",
+        "aliases": [
+          "Visual Basic 6",
+          "VB6"
+        ],
+        "extensions": [
+          ".bas",
+          ".cls",
+          ".frm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "vb6",
+        "scopeName": "source.vb6",
+        "path": "./syntaxes/vb6.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "VB6 LSP",
+      "properties": {
+        "vb6.sourcePaths": {
+          "type": "array",
+          "default": [],
+          "description": "Additional source directories to index. Relative paths are resolved from the workspace root."
+        },
+        "vb6.workspaceRoot": {
+          "type": "string",
+          "default": "",
+          "description": "Override the workspace root used to resolve .vbp files and source directories."
+        },
+        "vb6.projectFiles": {
+          "type": "array",
+          "default": [],
+          "description": "Optional list of .vbp files to parse. Relative paths are resolved from the workspace root."
+        },
+        "vb6.preferProjectFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer .vbp discovery over static sourcePaths when both are available."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.server.json",
+    "build:mcp": "tsc -p tsconfig.mcp.json",
+    "build:all": "npm run build && npm run build:mcp",
+    "lsp:stdio": "node out/server/server.js --stdio",
+    "mcp:stdio": "node out/mcp/mcp/server.js",
+    "benchmark": "npm run build:all && node scripts/benchmark-vs-grep.mjs",
+    "test": "npm run build:all && node --test tests/**/*.test.js",
+    "watch": "concurrently \"tsc -w -p tsconfig.json\" \"tsc -w -p tsconfig.server.json\"",
+    "postinstall": "cd . && echo Done"
+  },
+  "keywords": [
+    "vb6",
+    "visual-basic-6",
+    "lsp",
+    "language-server",
+    "mcp",
+    "legacy"
+  ],
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11",
+    "vscode-uri": "^3.0.8",
+    "chokidar": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}

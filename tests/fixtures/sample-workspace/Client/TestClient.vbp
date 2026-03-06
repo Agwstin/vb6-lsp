@@ -1,0 +1,5 @@
+Type=Exe
+Module=modSample; source\modSample.bas
+Module=modShared; ..\Common\modShared.bas
+Startup="Sub Main"
+Name="TestClient"
