@@ -46,6 +46,13 @@ export interface VB6WorkspaceConfig {
   objectReferences: VB6ProjectReference[];
 }
 
+export function findProjectsForFile(config: VB6WorkspaceConfig, filePath: string): VB6ProjectMetadata[] {
+  const resolved = path.resolve(filePath).toLowerCase();
+  return config.projects.filter((project) =>
+    project.components.some((component) => path.resolve(component.path).toLowerCase() === resolved),
+  );
+}
+
 const COMPONENT_PREFIXES = new Map<string, VB6ProjectComponent['kind']>([
   ['Module=', 'Module'],
   ['Class=', 'Class'],

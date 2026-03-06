@@ -18,4 +18,5 @@ test('workspace config exposes project metadata and external references from .vb
   assert.equal(ole.version, '2.0.0');
   assert.equal(ole.libraryName, 'stdole2.tlb');
   assert.ok(config.objectReferences.some((reference) => reference.description === 'mscomctl.ocx'));
+  assert.ok(config.externalReferences.some((reference) => reference.description === 'Missing Legacy Ref' && reference.exists === false));
 });

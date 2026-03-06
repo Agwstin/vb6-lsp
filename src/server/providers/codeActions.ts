@@ -31,6 +31,15 @@ export function handleCodeActions(params: CodeActionParams): CodeAction[] {
         diagnostic,
         missingEndMatch[1],
       ));
+      continue;
+    }
+
+    const duplicatePublicMatch = diagnostic.message.match(/^Duplicate Public symbol '([^']+)'/);
+    if (duplicatePublicMatch) {
+      const action = createChangeVisibilityAction(params.textDocument.uri, fileText, diagnostic);
+      if (action) {
+        actions.push(action);
+      }
     }
   }
 
@@ -74,6 +83,29 @@ function createMissingEndAction(uri: string, text: string, diagnostic: Diagnosti
 
   return {
     title: `Add End ${blockKind}`,
+    kind: CodeActionKind.QuickFix,
+    diagnostics: [diagnostic],
+    edit,
+  };
+}
+
+function createChangeVisibilityAction(uri: string, text: string, diagnostic: Diagnostic): CodeAction | null {
+  const lines = text.split(/\r?\n/);
+  const lineText = lines[diagnostic.range.start.line] || '';
+  const match = lineText.match(/^(\s*)Public\b/i);
+  if (!match) return null;
+
+  const start = match[1].length;
+  const edit: WorkspaceEdit = {
+    changes: {
+      [uri]: [
+        TextEdit.replace(Range.create(diagnostic.range.start.line, start, diagnostic.range.start.line, start + 'Public'.length), 'Private'),
+      ],
+    },
+  };
+
+  return {
+    title: 'Change Public to Private',
     kind: CodeActionKind.QuickFix,
     diagnostics: [diagnostic],
     edit,

@@ -502,7 +502,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '2.3.0',
+            version: '2.4.0',
           },
         },
       });

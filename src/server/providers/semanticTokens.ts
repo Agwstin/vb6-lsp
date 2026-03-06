@@ -34,24 +34,46 @@ export function handleSemanticTokens(
 ): SemanticTokens {
   const absolutePath = uriToPath(params.textDocument.uri);
   const filePath = normalizePath(absolutePath);
-  const symbols = index.byFile.get(filePath) || [];
-  const builder = new SemanticTokensBuilder();
   const lines = readLines(absolutePath);
+  const builder = new SemanticTokensBuilder();
+  const pushed = new Set<string>();
 
-  for (const symbol of symbols) {
-    const tokenType = mapTokenType(symbol);
-    if (tokenType < 0) continue;
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const occurrences = findIdentifierOccurrences(lines[lineIndex]);
+    for (const occurrence of occurrences) {
+      const symbol = resolveSemanticSymbol(index, filePath, occurrence.name, lineIndex + 1);
+      if (!symbol) continue;
 
-    const lineText = lines[symbol.line - 1];
-    if (!lineText) continue;
+      const tokenType = mapTokenType(symbol);
+      if (tokenType < 0) continue;
 
-    const occurrence = findIdentifierOccurrences(lineText, symbol.name)[0];
-    if (!occurrence) continue;
+      const key = `${lineIndex}:${occurrence.start}:${occurrence.end}:${tokenType}`;
+      if (pushed.has(key)) continue;
+      pushed.add(key);
 
-    builder.push(symbol.line - 1, occurrence.start, occurrence.end - occurrence.start, tokenType, 0);
+      builder.push(lineIndex, occurrence.start, occurrence.end - occurrence.start, tokenType, 0);
+    }
   }
 
   return builder.build();
+}
+
+function resolveSemanticSymbol(index: VB6Index, currentFile: string, name: string, line: number): VB6Symbol | null {
+  const matches = index.byName.get(name.toLowerCase()) || [];
+  if (matches.length === 0) return null;
+
+  const local = matches.find((symbol) =>
+    normalizePath(symbol.file) === currentFile &&
+    (symbol.scope === 'local' || symbol.scope === 'parameter') &&
+    symbol.containerLine !== undefined &&
+    symbol.containerLine <= line,
+  );
+  if (local) return local;
+
+  const sameFile = matches.find((symbol) => normalizePath(symbol.file) === currentFile);
+  if (sameFile) return sameFile;
+
+  return matches[0] || null;
 }
 
 function readLines(filePath: string): string[] {

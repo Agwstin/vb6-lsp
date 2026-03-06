@@ -5,6 +5,7 @@ import {
 } from 'vscode-languageserver';
 import * as fs from 'fs';
 import { VB6Index } from '../indexer/types';
+import { VB6WorkspaceConfig, findProjectsForFile } from '../config';
 import {
   isCommentLine,
   SYMBOL_RE,
@@ -17,7 +18,7 @@ import {
 } from '../indexer/parser';
 import { normalizePath } from '../utils';
 
-export function computeDiagnostics(filePath: string, index: VB6Index): Diagnostic[] {
+export function computeDiagnostics(filePath: string, index: VB6Index, workspaceConfig?: VB6WorkspaceConfig): Diagnostic[] {
   let content: string;
   try {
     content = fs.readFileSync(filePath, 'latin1');
@@ -127,6 +128,21 @@ export function computeDiagnostics(filePath: string, index: VB6Index): Diagnosti
         message: `Duplicate Public symbol '${symbol.name}' also defined in: ${duplicates.map((item) => item.moduleName).join(', ')}`,
         source: 'vb6-lsp',
       });
+    }
+  }
+
+  if (workspaceConfig) {
+    const projects = findProjectsForFile(workspaceConfig, filePath);
+    for (const project of projects) {
+      const missingReferences = project.references.filter((reference) => reference.exists === false);
+      for (const reference of missingReferences) {
+        diagnostics.push({
+          severity: DiagnosticSeverity.Warning,
+          range: Range.create(0, 0, 0, 0),
+          message: `Missing project reference '${reference.libraryName || reference.description || reference.raw}'`,
+          source: 'vb6-lsp',
+        });
+      }
     }
   }
 

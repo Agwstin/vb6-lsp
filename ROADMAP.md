@@ -20,6 +20,12 @@
 
 ## 2.4.0
 
-- [ ] Add diagnostics for unresolved symbols and unsupported references
-- [ ] Improve semantic tokens coverage beyond declarations
-- [ ] Add more editor-facing quick fixes
+- [x] Add diagnostics for unresolved symbols and unsupported references
+- [x] Improve semantic tokens coverage beyond declarations
+- [x] Add more editor-facing quick fixes
+
+## 2.5.0
+
+- [ ] Add higher-level analysis tools such as explain_symbol and trace_flow
+- [ ] Add caches for repeated agent-oriented queries
+- [ ] Improve result ranking and summarization for LLM consumption

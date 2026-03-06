@@ -1,5 +1,6 @@
 Type=Exe
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\System32\stdole2.tlb#OLE Automation
+Reference=*\G{11111111-1111-1111-1111-111111111111}#1.0#0#C:\Missing\LegacyRef.dll#Missing Legacy Ref
 Object={831FDD16-0C5C-11D2-A9FC-0000F8754DA1}#2.1#0; mscomctl.ocx
 Class=clsWorker; source\clsWorker.cls
 Form=source\frmMain.frm

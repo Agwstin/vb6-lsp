@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-2.3.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-2.4.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-17%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-19%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -29,9 +29,10 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 - Member access on typed variables and UDTs
 - Member access inside `With` blocks
 - Folding ranges for multiline VB6 symbols
-- Semantic tokens for indexed declarations
+- Semantic tokens for declarations and symbol usages
 - Code actions for common diagnostics
 - Diagnostics for missing block terminators, duplicate public symbols, and missing `Option Explicit`
+- Diagnostics for missing external project references
 - Basic type inference for common assignment patterns
 - `.vbp` project metadata and external reference parsing
 - Basic `.frm` designer/control awareness
@@ -227,7 +228,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 - basic form/control awareness for `.frm` files
 - project/reference awareness from `.vbp`
 - richer MCP workflows for project and reference inspection
-- semantic tokens and basic quick fixes in the editor
+- semantic tokens and richer quick fixes in the editor
 - official stdio MCP server included in the repo
 
 It is not a full VB6 compiler or full COM/type-inference engine.
@@ -247,5 +248,6 @@ Automated tests cover:
 - richer MCP workflows for projects, references, and type members
 - `.frm` designer control indexing
 - member access inside `With` blocks
+- missing external project reference diagnostics
 - LSP end-to-end requests over stdio
 - MCP stdio tool exposure, indexing, and richer tool workflows

@@ -117,7 +117,7 @@ function pushDiagnostics(uri: string): void {
 
   try {
     const filePath = uriToPath(uri);
-    const diagnostics = computeDiagnostics(filePath, indexer.getIndex());
+    const diagnostics = computeDiagnostics(filePath, indexer.getIndex(), workspaceConfig);
     connection.sendDiagnostics({ uri, diagnostics });
   } catch (error) {
     connection.console.error(`Diagnostics error: ${error}`);

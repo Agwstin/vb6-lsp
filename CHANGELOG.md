@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.0 - 2026-03-06
+
+- Added diagnostics for missing external project references on files that belong to affected `.vbp` projects.
+- Expanded semantic tokens beyond declarations so symbol usages receive richer highlighting.
+- Added an additional quick fix for duplicate Public symbols with explicit visibility.
+- Expanded compatibility coverage to `19/19` passing tests.
+
 ## 2.3.0 - 2026-03-06
 
 - Added form/control awareness for `.frm` designer controls.

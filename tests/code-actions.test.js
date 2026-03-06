@@ -40,3 +40,20 @@ test('code actions suggest adding missing End statements', () => {
 
   assert.ok(actions.some((action) => action.title === 'Add End Sub'));
 });
+
+test('code actions suggest changing duplicate Public symbols to Private', () => {
+  const rootDir = path.resolve(__dirname, 'fixtures', 'code-actions-workspace');
+  const sourceDir = path.join(rootDir, 'source');
+  const indexer = new VB6Indexer(rootDir, [sourceDir]);
+  indexer.buildFullIndex();
+
+  const filePath = path.join(sourceDir, 'modDuplicatePublic.bas');
+  const diagnostics = computeDiagnostics(filePath, indexer.getIndex());
+  const actions = handleCodeActions({
+    textDocument: { uri: pathToFileURL(filePath).href },
+    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+    context: { diagnostics },
+  });
+
+  assert.ok(actions.some((action) => action.title === 'Change Public to Private'));
+});
