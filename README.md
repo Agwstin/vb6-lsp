@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-2.0.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-2.1.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-11%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-14%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -28,6 +28,8 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 - Rename
 - Member access on typed variables and UDTs
 - Folding ranges for multiline VB6 symbols
+- Semantic tokens for indexed declarations
+- Code actions for common diagnostics
 - Diagnostics for missing block terminators, duplicate public symbols, and missing `Option Explicit`
 - Basic type inference for common assignment patterns
 - `.vbp` project metadata and external reference parsing
@@ -210,13 +212,14 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 
 ## Scope
 
-`2.0.0` is intended to be a full-featured practical release for VB6 navigation and indexed code-exploration workflows:
+`2.1.0` is intended to be a full-featured practical release for VB6 navigation and indexed code-exploration workflows:
 
 - portable workspace discovery via `.vbp`
 - project-wide symbol search and navigation
 - contextual local/parameter-aware resolution for the main authoring features
 - member access when the receiver type is known
 - project/reference awareness from `.vbp`
+- semantic tokens and basic quick fixes in the editor
 - official stdio MCP server included in the repo
 
 It is not a full VB6 compiler or full COM/type-inference engine.
@@ -229,6 +232,8 @@ Automated tests cover:
 - indexer behavior for module symbols, properties, locals, and parameters
 - member access on class modules and UDT fields
 - folding ranges for multiline VB6 symbols
+- semantic tokens for indexed declarations
+- code actions for common diagnostics
 - project metadata and external reference parsing
 - basic type inference from common assignments
 - LSP end-to-end requests over stdio

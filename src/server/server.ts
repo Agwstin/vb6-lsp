@@ -19,6 +19,8 @@ import { handleSignatureHelp } from './providers/signatureHelp';
 import { computeDiagnostics } from './providers/diagnostics';
 import { handlePrepareRename, handleRename } from './providers/rename';
 import { handleFoldingRanges } from './providers/foldingRanges';
+import { handleCodeActions } from './providers/codeActions';
+import { handleSemanticTokens, VB6_SEMANTIC_TOKEN_LEGEND } from './providers/semanticTokens';
 import { uriToPath } from './utils';
 import { resolveWorkspaceConfig, VB6ServerSettings, VB6WorkspaceConfig } from './config';
 
@@ -59,6 +61,11 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
         prepareProvider: true,
       },
       foldingRangeProvider: true,
+      codeActionProvider: true,
+      semanticTokensProvider: {
+        legend: VB6_SEMANTIC_TOKEN_LEGEND,
+        full: true,
+      },
     },
   };
 });
@@ -204,6 +211,24 @@ connection.onFoldingRanges((params) => {
   } catch (error) {
     connection.console.error(`FoldingRange error: ${error}`);
     return [];
+  }
+});
+
+connection.onCodeAction((params) => {
+  try {
+    return handleCodeActions(params);
+  } catch (error) {
+    connection.console.error(`CodeAction error: ${error}`);
+    return [];
+  }
+});
+
+connection.languages.semanticTokens.on((params) => {
+  try {
+    return indexer ? handleSemanticTokens(params, indexer.getIndex()) : { data: [] };
+  } catch (error) {
+    connection.console.error(`SemanticTokens error: ${error}`);
+    return { data: [] };
   }
 });
 

@@ -1,19 +1,19 @@
 # Roadmap
 
-## 1.1.0
+## 2.1.0
 
-- [x] Improve parser coverage for more VB6 declaration edge cases
-- [x] Expand fixtures and regression tests with additional real-world patterns
-- [x] Improve completion ranking and contextual relevance
+- [x] Add semantic tokens for richer editor highlighting
+- [x] Add basic code actions for common diagnostics
+- [x] Add CI for build/test validation
 
-## 1.2.0
+## 2.2.0
 
-- [x] Add basic type inference from declarations and common assignments
-- [x] Parse `.vbp` project/reference metadata more deeply
-- [x] Expose project/reference information through MCP tooling
+- [ ] Expand type inference beyond simple `New` and direct return patterns
+- [ ] Improve external reference / COM metadata handling
+- [ ] Add more agent-oriented MCP workflows
 
-## 2.0.0
+## 2.3.0
 
-- [x] Add typed member access for completion / definition / hover when the variable type is known
-- [x] Add richer editor-facing capabilities built on the stronger semantic model
-- [x] Finish packaging/docs polish for wider editor and agent consumption
+- [ ] Improve form/class awareness for more VB6 designer-heavy projects
+- [ ] Expand completion and navigation around member access edge cases
+- [ ] Add more real-world fixture projects and compatibility checks

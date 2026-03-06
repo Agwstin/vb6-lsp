@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0 - 2026-03-06
+
+- Added semantic tokens for richer editor highlighting of indexed VB6 declarations.
+- Added basic code actions for common diagnostics such as missing `Option Explicit` and missing `End` blocks.
+- Added GitHub Actions CI for build and test validation on push and pull requests.
+- Expanded automated coverage to `14/14` passing tests.
+
 ## 2.0.0 - 2026-03-06
 
 - Added typed member access for completion, definition, hover, and signature help when the receiver type is known.
