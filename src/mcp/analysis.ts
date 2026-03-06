@@ -7,9 +7,12 @@ export interface DerivedCache {
   routineNames: Set<string>;
   callersByName: Map<string, Set<string>>;
   calleesByName: Map<string, Set<string>>;
+  symbolsByModule: Map<string, MCPSymbol[]>;
   referencesByName: Map<string, Array<{ file: string; line: number; context: string }>>;
   moduleSummaries: Map<string, unknown>;
   symbolAnalyses: Map<string, unknown>;
+  relatedSymbols: Map<string, unknown>;
+  entrypoints: Map<'network' | 'ui', unknown[]>;
 }
 
 export function buildDerivedCache(index: MCPIndex): DerivedCache {
@@ -20,6 +23,14 @@ export function buildDerivedCache(index: MCPIndex): DerivedCache {
   const routineNames = new Set(routineSymbols.map((symbol) => symbol.name.toLowerCase()));
   const callersByName = new Map<string, Set<string>>();
   const calleesByName = new Map<string, Set<string>>();
+  const symbolsByModule = new Map<string, MCPSymbol[]>();
+
+  for (const symbol of index.symbols) {
+    const key = symbol.moduleName.toLowerCase();
+    const bucket = symbolsByModule.get(key) || [];
+    bucket.push(symbol);
+    symbolsByModule.set(key, bucket);
+  }
 
   for (const routine of routineSymbols) {
     const lines = index.fileContents.get(routine.file);
@@ -47,9 +58,12 @@ export function buildDerivedCache(index: MCPIndex): DerivedCache {
     routineNames,
     callersByName,
     calleesByName,
+    symbolsByModule,
     referencesByName: new Map(),
     moduleSummaries: new Map(),
     symbolAnalyses: new Map(),
+    relatedSymbols: new Map(),
+    entrypoints: new Map(),
   };
 }
 
@@ -78,10 +92,13 @@ export function explainSymbol(index: MCPIndex, derived: DerivedCache, symbols: M
       : null,
     visibilityScope: primary ? `${primary.visibility} ${primary.scope}` : '',
     relatedModules,
-    callers,
-    callees,
+    callers: callers.slice(0, 20),
+    callees: callees.slice(0, 20),
+    callerCount: callers.length,
+    calleeCount: callees.length,
     suspiciousDuplicates,
     summary: primary ? summarizeSymbol(primary, callers.length, callees.length) : '',
+    confidence: primary ? (symbols.length === 1 ? 'high' : 'medium') : 'low',
   };
 }
 
@@ -217,11 +234,18 @@ export function analyzeStateSymbol(
 }
 
 export function findEntrypoints(index: MCPIndex, mode: 'network' | 'ui') {
+  return findEntrypointsCached(index, buildDerivedCache(index), mode);
+}
+
+export function findEntrypointsCached(index: MCPIndex, derived: DerivedCache, mode: 'network' | 'ui') {
+  const cached = derived.entrypoints.get(mode);
+  if (cached) return cached;
+
   const patterns = mode === 'network'
     ? [/(handle|process|parse|send|recv|read|write|packet|socket|protocol|winsock|tcp)/i, /(tcp|socket|winsock|packet|network|protocol)/i]
     : [/(show|hide|render|click|keypress|mousedown|mouseup|mouse|load|focus)/i, /(frm|ui)/i];
 
-  return index.symbols.filter((symbol) =>
+  const entrypoints = index.symbols.filter((symbol) =>
     symbol.scope === 'module' &&
     (symbol.kind === 'Sub' || symbol.kind === 'Function' || symbol.kind === 'Property') &&
     (patterns[0].test(symbol.name) || patterns[1].test(symbol.moduleName) || patterns[1].test(symbol.file)),
@@ -232,31 +256,68 @@ export function findEntrypoints(index: MCPIndex, mode: 'network' | 'ui') {
     file: symbol.file,
     line: symbol.line,
     signature: formatSignature(symbol),
+    score: patterns[0].test(symbol.name) ? 2 : 1,
   }));
+
+  const ranked = entrypoints.sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
+  derived.entrypoints.set(mode, ranked);
+  return ranked;
 }
 
-export function findRelatedSymbols(index: MCPIndex, derived: DerivedCache, name: string) {
+export function findRelatedSymbols(
+  index: MCPIndex,
+  derived: DerivedCache,
+  name: string,
+): Array<{
+  name: string;
+  kind: string;
+  moduleName: string;
+  file: string;
+  line: number;
+  signature: string;
+  matchReason: string;
+  score: number;
+}> {
   const lower = name.toLowerCase();
+  const cached = derived.relatedSymbols.get(lower);
+  if (cached) return cached as ReturnType<typeof findRelatedSymbols>;
   const base = index.byName.get(lower) || [];
   const modules = new Set(base.map((symbol) => symbol.moduleName.toLowerCase()));
-  const related = index.symbols.filter((symbol) =>
-    modules.has(symbol.moduleName.toLowerCase()) ||
-    derived.callersByName.get(lower)?.has(symbol.name.toLowerCase()) ||
-    derived.calleesByName.get(lower)?.has(symbol.name.toLowerCase()) ||
-    symbol.name.toLowerCase().includes(lower),
-  );
+  const callers = derived.callersByName.get(lower) || new Set<string>();
+  const callees = derived.calleesByName.get(lower) || new Set<string>();
 
-  return related
+  const related = index.symbols
+    .map((symbol) => {
+      let score = 0;
+      let matchReason = '';
+      if (modules.has(symbol.moduleName.toLowerCase())) {
+        score = 3;
+        matchReason = 'same-module';
+      } else if (callers.has(symbol.name.toLowerCase()) || callees.has(symbol.name.toLowerCase())) {
+        score = 2;
+        matchReason = 'call-graph';
+      } else if (symbol.name.toLowerCase().includes(lower)) {
+        score = 1;
+        matchReason = 'name-match';
+      }
+      return { symbol, score, matchReason };
+    })
+    .filter((item) => item.score > 0)
+    .sort((left, right) => right.score - left.score || left.symbol.name.localeCompare(right.symbol.name))
     .slice(0, 50)
-    .map((symbol) => ({
-      name: symbol.name,
-      kind: symbol.kind,
-      moduleName: symbol.moduleName,
-      file: symbol.file,
-      line: symbol.line,
-      signature: formatSignature(symbol),
-      matchReason: modules.has(symbol.moduleName.toLowerCase()) ? 'same-module' : symbol.name.toLowerCase().includes(lower) ? 'name-match' : 'call-graph',
+    .map((item) => ({
+      name: item.symbol.name,
+      kind: item.symbol.kind,
+      moduleName: item.symbol.moduleName,
+      file: item.symbol.file,
+      line: item.symbol.line,
+      signature: formatSignature(item.symbol),
+      matchReason: item.matchReason,
+      score: item.score,
     }));
+
+  derived.relatedSymbols.set(lower, related);
+  return related;
 }
 
 export function summarizeModuleForAgents(index: MCPIndex, derived: DerivedCache, filePath: string, symbols: MCPSymbol[]) {
@@ -341,12 +402,17 @@ export function analyzeSymbolBundle(
     name,
     definitionCount: symbols.length,
     explanation,
-    references,
-    callers: getCallers(derived, name),
-    callees: getCallees(derived, name),
-    related: findRelatedSymbols(index, derived, name),
-    mutations,
+    references: references.slice(0, 20),
+    referenceCount: references.length,
+    callers: getCallers(derived, name).slice(0, 20),
+    callerCount: getCallers(derived, name).length,
+    callees: getCallees(derived, name).slice(0, 20),
+    calleeCount: getCallees(derived, name).length,
+    related: findRelatedSymbols(index, derived, name).slice(0, 20),
+    mutations: mutations.slice(0, 20),
+    mutationCount: mutations.length,
     summary: explanation.summary,
+    nextLikelySymbols: [...getCallers(derived, name), ...getCallees(derived, name)].slice(0, 10),
   };
   derived.symbolAnalyses.set(cacheKey, analysis);
   return analysis;

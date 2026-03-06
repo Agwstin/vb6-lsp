@@ -1,6 +1,6 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-3.1.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-3.2.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
 [![Tests](https://img.shields.io/badge/tests-23%20passing-2da44e)](./tests)
 
@@ -238,7 +238,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 
 ## Scope
 
-`3.0.0` positions `vb6-lsp` as both a practical VB6 editor integration and a stable agent-first MCP analysis surface:
+`3.2.0` positions `vb6-lsp` as both a practical VB6 editor integration and a stable agent-first MCP analysis surface:
 
 - portable workspace discovery via `.vbp`
 - project-wide symbol search and navigation
@@ -252,6 +252,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 - specialized workflows for common legacy VB6 investigation tasks
 - bundled one-call analyses for symbols and modules
 - directional flow tracing and state-oriented analysis
+- smarter ranking and trimming for heavy agent analyses
 - semantic tokens and richer quick fixes in the editor
 - official stdio MCP server included in the repo
 

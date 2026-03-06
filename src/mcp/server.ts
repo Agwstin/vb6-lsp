@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { buildVB6Index, findReferences, searchCode } from '../server/indexer/mcp-bridge';
 import { resolveWorkspaceConfig, VB6ServerSettings } from '../server/config';
 import { findFileSymbols, formatSignature, readSymbolBody, summarizeModule } from './utils';
-import { analyzeModuleBundle, analyzePacketHandler, analyzeStateSymbol, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypoints, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow, traceInboundFlow, traceOutboundFlow } from './analysis';
+import { analyzeModuleBundle, analyzePacketHandler, analyzeStateSymbol, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypointsCached, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow, traceInboundFlow, traceOutboundFlow } from './analysis';
 
 const workspaceConfig = resolveWorkspaceConfig({
   rootUri: process.env.VB6_LSP_ROOT ? `file:///${process.env.VB6_LSP_ROOT.replace(/\\/g, '/')}` : undefined,
@@ -580,18 +580,18 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   }
 
   if (name === 'find_network_entrypoints') {
-    const index = ensureIndex();
+    const { index, derived } = ensureDerived();
     return toolResult({
       indexedAt,
-      entrypoints: findEntrypoints(index, 'network'),
+      entrypoints: findEntrypointsCached(index, derived, 'network'),
     });
   }
 
   if (name === 'find_ui_entrypoints') {
-    const index = ensureIndex();
+    const { index, derived } = ensureDerived();
     return toolResult({
       indexedAt,
-      entrypoints: findEntrypoints(index, 'ui'),
+      entrypoints: findEntrypointsCached(index, derived, 'ui'),
     });
   }
 
@@ -868,7 +868,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '3.1.0',
+            version: '3.2.0',
           },
         },
       });

@@ -38,4 +38,6 @@ test('bundle MCP tools expose consolidated agent-first analyses', async () => {
   assert.match(stdout, /frmMain/);
   assert.match(stdout, /controls/);
   assert.match(stdout, /related/);
+  assert.match(stdout, /nextLikelySymbols/);
+  assert.match(stdout, /referenceCount/);
 });

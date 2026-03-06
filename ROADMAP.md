@@ -50,6 +50,12 @@
 
 ## 3.2.0
 
-- [ ] Reduce MCP latency for analysis-heavy tools
-- [ ] Add smarter ranking/default result trimming for large analyses
-- [ ] Expand entrypoint and state heuristics further
+- [x] Reduce MCP latency for analysis-heavy tools
+- [x] Add smarter ranking/default result trimming for large analyses
+- [x] Expand entrypoint and state heuristics further
+
+## 3.3.0
+
+- [ ] Add deeper unresolved symbol analysis with safer heuristics
+- [ ] Improve semantic token categories and member usage precision further
+- [ ] Expand more domain-neutral investigation workflows only if the signal-to-noise ratio stays high

@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.2.0 - 2026-03-06
+
+- Added more explicit caches and smarter ranking/trimming for analysis-heavy MCP tools.
+- Improved bundled analysis outputs with confidence, counts, suggested next symbols, and match scores.
+- Expanded flow, entrypoint, and related-symbol heuristics further.
+- Kept the suite green at `23/23` passing tests.
+
 ## 3.1.0 - 2026-03-06
 
 - Added unresolved routine diagnostics with a quick fix to create stub routines.

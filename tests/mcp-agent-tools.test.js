@@ -45,4 +45,6 @@ test('agent-oriented MCP tools expose explanations, flow, mutations, and entrypo
   assert.match(stdout, /mutations/);
   assert.match(stdout, /entrypoints/);
   assert.match(stdout, /related/);
+  assert.match(stdout, /confidence/);
+  assert.match(stdout, /score/);
 });
