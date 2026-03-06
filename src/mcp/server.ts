@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { buildVB6Index, findReferences, searchCode } from '../server/indexer/mcp-bridge';
 import { resolveWorkspaceConfig, VB6ServerSettings } from '../server/config';
 import { findFileSymbols, formatSignature, readSymbolBody, summarizeModule } from './utils';
-import { analyzeModuleBundle, analyzePacketHandler, analyzeStateSymbol, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypointsCached, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow, traceInboundFlow, traceOutboundFlow } from './analysis';
+import { analyzeModuleBundle, analyzePacketHandler, analyzeProjectReferenceImpact, analyzeStartupFlow, analyzeStateSymbol, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypointsCached, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow, traceInboundFlow, traceOutboundFlow } from './analysis';
 
 const workspaceConfig = resolveWorkspaceConfig({
   rootUri: process.env.VB6_LSP_ROOT ? `file:///${process.env.VB6_LSP_ROOT.replace(/\\/g, '/')}` : undefined,
@@ -57,6 +57,27 @@ function writeMessage(message: unknown) {
 
 function listTools() {
   return [
+    {
+      name: 'analyze_startup_flow',
+      description: 'Analyze project startup definitions and their immediate outbound flow.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'analyze_project_reference_impact',
+      description: 'Find which projects are affected by a matching external reference/library.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Reference/library text, GUID, or description to search.' },
+        },
+        required: ['query'],
+        additionalProperties: false,
+      },
+    },
     {
       name: 'explain_symbol',
       description: 'Return a higher-level explanation of a symbol including likely definition, call graph context, and related modules.',
@@ -432,6 +453,22 @@ function toolError(message: string) {
 }
 
 async function callTool(name: string, args: Record<string, unknown> = {}) {
+  if (name === 'analyze_startup_flow') {
+    const { index, derived } = ensureDerived();
+    return toolResult({
+      indexedAt,
+      analysis: analyzeStartupFlow(index, derived, workspaceConfig.projects),
+    });
+  }
+
+  if (name === 'analyze_project_reference_impact') {
+    ensureIndex();
+    return toolResult({
+      indexedAt,
+      analysis: analyzeProjectReferenceImpact(workspaceConfig.projects, String(args.query)),
+    });
+  }
+
   if (name === 'analyze_symbol') {
     const { index, derived } = ensureDerived();
     const matches = (index.byName.get(String(args.name).toLowerCase()) || [])
@@ -868,7 +905,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '3.2.0',
+            version: '3.3.0',
           },
         },
       });

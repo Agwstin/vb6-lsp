@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.0 - 2026-03-06
+
+- Added safer unresolved-symbol analysis for `With` receivers.
+- Added project-level MCP workflows such as `analyze_startup_flow` and `analyze_project_reference_impact`.
+- Expanded semantic/member usage precision and domain-neutral investigation coverage.
+- Expanded the automated suite to `25/25` passing tests.
+
 ## 3.2.0 - 2026-03-06
 
 - Added more explicit caches and smarter ranking/trimming for analysis-heavy MCP tools.

@@ -16,6 +16,7 @@ import {
   ATTRIBUTE_RE,
   readLogicalLine,
   stripInlineComment,
+  WITH_RE,
 } from '../indexer/parser';
 import { normalizePath } from '../utils';
 import { resolveSymbolSet } from '../resolution';
@@ -94,6 +95,22 @@ export function computeDiagnostics(filePath: string, index: VB6Index, workspaceC
           message: `Unexpected End ${endMatch[1]} without matching ${endMatch[1]}`,
           source: 'vb6-lsp',
         });
+      }
+    }
+
+    const withMatch = trimmed.match(WITH_RE);
+    if (withMatch) {
+      const receiver = withMatch[1].trim();
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(receiver)) {
+        const resolved = resolveSymbolSet(index, receiver, filePath, logical.startLine);
+        if (resolved.definitions.length === 0) {
+          diagnostics.push({
+            severity: DiagnosticSeverity.Warning,
+            range: Range.create(logical.startLine - 1, raw.indexOf(receiver), logical.startLine - 1, raw.indexOf(receiver) + receiver.length),
+            message: `Unresolved With receiver '${receiver}'`,
+            source: 'vb6-lsp',
+          });
+        }
       }
     }
 

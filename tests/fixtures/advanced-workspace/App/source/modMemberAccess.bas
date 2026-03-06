@@ -16,3 +16,9 @@ Public Sub DemoWithMemberAccess()
         .DisplayName
     End With
 End Sub
+
+Public Sub DemoBrokenWith()
+    With MissingWorker
+        .DisplayName
+    End With
+End Sub

@@ -32,6 +32,7 @@ export interface VB6ProjectMetadata {
   file: string;
   name?: string;
   type?: string;
+  startup?: string;
   components: VB6ProjectComponent[];
   references: VB6ProjectReference[];
   objects: VB6ProjectReference[];
@@ -179,6 +180,7 @@ function parseProjectFile(projectFile: string): VB6ProjectMetadata | null {
   const objects: VB6ProjectReference[] = [];
   let name;
   let type;
+  let startup;
 
   for (const line of lines) {
     if (line.startsWith('Name=')) {
@@ -188,6 +190,11 @@ function parseProjectFile(projectFile: string): VB6ProjectMetadata | null {
 
     if (line.startsWith('Type=')) {
       type = stripProjectValue(line.substring('Type='.length));
+      continue;
+    }
+
+    if (line.startsWith('Startup=')) {
+      startup = stripProjectValue(line.substring('Startup='.length));
       continue;
     }
 
@@ -224,6 +231,7 @@ function parseProjectFile(projectFile: string): VB6ProjectMetadata | null {
     file: projectFile,
     name,
     type,
+    startup,
     components,
     references,
     objects,

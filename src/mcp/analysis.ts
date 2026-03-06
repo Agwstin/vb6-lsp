@@ -384,6 +384,64 @@ export function analyzeUiForm(index: MCPIndex, derived: DerivedCache, filePath: 
   };
 }
 
+export function analyzeStartupFlow(index: MCPIndex, derived: DerivedCache, projects: Array<{ name?: string; startup?: string; file: string }>) {
+  const analyses = projects.map((project) => {
+    const startup = project.startup || '';
+    const symbolName = startup.replace(/^Sub\s+/i, '').trim();
+    const symbols = symbolName ? (index.byName.get(symbolName.toLowerCase()) || []) : [];
+    return {
+      project: project.name || project.file,
+      startup,
+      startupDefinitions: symbols.slice(0, 5).map((symbol) => ({
+        name: symbol.name,
+        moduleName: symbol.moduleName,
+        file: symbol.file,
+        line: symbol.line,
+        signature: formatSignature(symbol),
+      })),
+      outboundFlow: symbolName ? traceOutboundFlow(derived, symbolName, 3) : [],
+    };
+  });
+
+  return {
+    analysisKind: 'startup-flow',
+    projects: analyses,
+  };
+}
+
+export function analyzeProjectReferenceImpact(projects: Array<{
+  file: string;
+  name?: string;
+  references: Array<{ raw: string; description?: string; guid?: string; libraryName?: string; exists?: boolean }>;
+  components: Array<{ name: string; path: string; kind: string }>;
+}>, query: string) {
+  const lower = query.toLowerCase();
+  const impacted = projects
+    .map((project) => {
+      const matches = project.references.filter((reference) =>
+        reference.raw.toLowerCase().includes(lower) ||
+        (reference.description || '').toLowerCase().includes(lower) ||
+        (reference.guid || '').toLowerCase().includes(lower) ||
+        (reference.libraryName || '').toLowerCase().includes(lower),
+      );
+      if (matches.length === 0) return null;
+      return {
+        project: project.name || project.file,
+        file: project.file,
+        referenceMatches: matches,
+        componentCount: project.components.length,
+        sampleComponents: project.components.slice(0, 10),
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    analysisKind: 'project-reference-impact',
+    query,
+    impacted,
+  };
+}
+
 export function analyzeSymbolBundle(
   index: MCPIndex,
   derived: DerivedCache,

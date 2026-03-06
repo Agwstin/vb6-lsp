@@ -1,8 +1,8 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-3.2.0-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-3.3.0-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-23%20passing-2da44e)](./tests)
+[![Tests](https://img.shields.io/badge/tests-25%20passing-2da44e)](./tests)
 
 `vb6-lsp` is a Visual Basic 6 language server plus MCP server for real-world legacy VB6 codebases.
 
@@ -33,6 +33,7 @@ It understands multi-project `.vbp` workspaces, indexes large source trees quick
 - Code actions for common diagnostics
 - Diagnostics for missing block terminators, duplicate public symbols, and missing `Option Explicit`
 - Diagnostics for unresolved routines
+- Diagnostics for unresolved `With` receivers
 - Diagnostics for missing external project references
 - Basic type inference for common assignment patterns
 - `.vbp` project metadata and external reference parsing
@@ -123,6 +124,8 @@ The built-in MCP server exposes:
 - `trace_inbound_flow`
 - `trace_outbound_flow`
 - `analyze_state_symbol`
+- `analyze_startup_flow`
+- `analyze_project_reference_impact`
 - `index_stats`
 - `reindex_vb6`
 
@@ -238,7 +241,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 
 ## Scope
 
-`3.2.0` positions `vb6-lsp` as both a practical VB6 editor integration and a stable agent-first MCP analysis surface:
+`3.3.0` positions `vb6-lsp` as both a practical VB6 editor integration and a stable agent-first MCP analysis surface:
 
 - portable workspace discovery via `.vbp`
 - project-wide symbol search and navigation
@@ -253,6 +256,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 - bundled one-call analyses for symbols and modules
 - directional flow tracing and state-oriented analysis
 - smarter ranking and trimming for heavy agent analyses
+- project-level startup/reference impact workflows
 - semantic tokens and richer quick fixes in the editor
 - official stdio MCP server included in the repo
 

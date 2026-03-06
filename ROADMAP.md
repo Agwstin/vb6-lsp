@@ -56,6 +56,11 @@
 
 ## 3.3.0
 
-- [ ] Add deeper unresolved symbol analysis with safer heuristics
-- [ ] Improve semantic token categories and member usage precision further
-- [ ] Expand more domain-neutral investigation workflows only if the signal-to-noise ratio stays high
+- [x] Add deeper unresolved symbol analysis with safer heuristics
+- [x] Improve semantic token categories and member usage precision further
+- [x] Expand more domain-neutral investigation workflows only if the signal-to-noise ratio stays high
+
+## 3.4.0
+
+- [ ] Only pursue further MCP expansion based on observed real-world usage and telemetry
+- [ ] Favor precision and pruning over more heuristics by default
