@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.2 - 2026-03-07
+
+- Improved MCP file resolution to prefer exact relative-path matches and avoid silently picking the wrong file when duplicate filenames exist across projects.
+- Added ambiguity reporting for file-based MCP lookups.
+- Added regression coverage for ambiguous file resolution.
+
 ## 3.3.1 - 2026-03-06
 
 - Added local opt-in MCP telemetry for tool usage analysis.

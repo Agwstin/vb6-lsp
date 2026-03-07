@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { buildVB6Index, findReferences, searchCode } from '../server/indexer/mcp-bridge';
 import { resolveWorkspaceConfig, VB6ServerSettings } from '../server/config';
-import { findFileSymbols, formatSignature, readSymbolBody, summarizeModule } from './utils';
+import { findFileSymbols, formatSignature, readSymbolBody, resolveFileSymbols, summarizeModule } from './utils';
 import { analyzeModuleBundle, analyzePacketHandler, analyzeProjectReferenceImpact, analyzeStartupFlow, analyzeStateSymbol, analyzeSymbolBundle, analyzeUiForm, buildDerivedCache, DerivedCache, explainSymbol, findEntrypointsCached, findRelatedSymbols, findStateMutations, getCachedReferences, getCallees, getCallers, summarizeModuleForAgents, traceFlow, traceInboundFlow, traceOutboundFlow } from './analysis';
 import { createTelemetryContext, recordTelemetry, summarizeToolResult } from './telemetry';
 
@@ -488,9 +488,13 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
 
   if (name === 'analyze_module') {
     const { index, derived } = ensureDerived();
-    const fileMatch = findFileSymbols(index, String(args.file));
+    const fileResolution = resolveFileSymbols(index, String(args.file));
+    const fileMatch = fileResolution.match;
     if (!fileMatch) {
-      return toolError(`File not found: ${String(args.file)}`);
+      const hint = fileResolution.candidates.length > 0
+        ? ` Candidates: ${fileResolution.candidates.join(', ')}`
+        : '';
+      return toolError(`File not found or ambiguous: ${String(args.file)}.${hint}`);
     }
 
     return toolResult({
@@ -544,9 +548,13 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
 
   if (name === 'summarize_module') {
     const { index, derived } = ensureDerived();
-    const fileMatch = findFileSymbols(index, String(args.file));
+    const fileResolution = resolveFileSymbols(index, String(args.file));
+    const fileMatch = fileResolution.match;
     if (!fileMatch) {
-      return toolError(`File not found: ${String(args.file)}`);
+      const hint = fileResolution.candidates.length > 0
+        ? ` Candidates: ${fileResolution.candidates.join(', ')}`
+        : '';
+      return toolError(`File not found or ambiguous: ${String(args.file)}.${hint}`);
     }
 
     return toolResult({
@@ -565,9 +573,13 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
 
   if (name === 'analyze_ui_form') {
     const { index, derived } = ensureDerived();
-    const fileMatch = findFileSymbols(index, String(args.file));
+    const fileResolution = resolveFileSymbols(index, String(args.file));
+    const fileMatch = fileResolution.match;
     if (!fileMatch) {
-      return toolError(`File not found: ${String(args.file)}`);
+      const hint = fileResolution.candidates.length > 0
+        ? ` Candidates: ${fileResolution.candidates.join(', ')}`
+        : '';
+      return toolError(`File not found or ambiguous: ${String(args.file)}.${hint}`);
     }
     return toolResult({
       indexedAt,
@@ -700,15 +712,19 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
     const kindFilter = args.kind ? String(args.kind).toLowerCase() : '';
     const nameFilter = args.filter ? String(args.filter).toLowerCase() : '';
 
-    let symbols = index.symbols;
-    let resolvedFile: string | undefined;
-    if (args.file) {
-      const fileMatch = findFileSymbols(index, String(args.file));
-      if (!fileMatch) {
-        return toolError(`File not found: ${String(args.file)}`);
-      }
-      resolvedFile = fileMatch.filePath;
-      symbols = fileMatch.symbols;
+      let symbols = index.symbols;
+      let resolvedFile: string | undefined;
+      if (args.file) {
+      const fileResolution = resolveFileSymbols(index, String(args.file));
+      const fileMatch = fileResolution.match;
+        if (!fileMatch) {
+          const hint = fileResolution.candidates.length > 0
+            ? ` Candidates: ${fileResolution.candidates.join(', ')}`
+            : '';
+          return toolError(`File not found or ambiguous: ${String(args.file)}.${hint}`);
+        }
+        resolvedFile = fileMatch.filePath;
+        symbols = fileMatch.symbols;
     }
 
     const matches = symbols
@@ -765,9 +781,13 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
   if (name === 'read_function') {
     const { index } = ensureIndex();
     const maxBodyLines = Math.min(Math.max(Number(args.maxBodyLines || 240), 1), 400);
-    const fileMatch = findFileSymbols(index, String(args.file));
+    const fileResolution = resolveFileSymbols(index, String(args.file));
+    const fileMatch = fileResolution.match;
     if (!fileMatch) {
-      return toolError(`File not found: ${String(args.file)}`);
+      const hint = fileResolution.candidates.length > 0
+        ? ` Candidates: ${fileResolution.candidates.join(', ')}`
+        : '';
+      return toolError(`File not found or ambiguous: ${String(args.file)}.${hint}`);
     }
 
     const symbol = fileMatch.symbols.find((entry) =>
@@ -817,9 +837,13 @@ async function callTool(name: string, args: Record<string, unknown> = {}) {
 
   if (name === 'module_info') {
     const { index } = ensureIndex();
-    const fileMatch = findFileSymbols(index, String(args.file));
+    const fileResolution = resolveFileSymbols(index, String(args.file));
+    const fileMatch = fileResolution.match;
     if (!fileMatch) {
-      return toolError(`File not found: ${String(args.file)}`);
+      const hint = fileResolution.candidates.length > 0
+        ? ` Candidates: ${fileResolution.candidates.join(', ')}`
+        : '';
+      return toolError(`File not found or ambiguous: ${String(args.file)}.${hint}`);
     }
 
     return toolResult({
@@ -909,7 +933,7 @@ async function handleMessage(message: any) {
           },
           serverInfo: {
             name: 'vb6-lsp-mcp',
-            version: '3.3.1',
+            version: '3.3.2',
           },
         },
       });

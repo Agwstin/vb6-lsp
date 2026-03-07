@@ -21,13 +21,46 @@ export function formatSignature(symbol: MCPSymbol): string {
 }
 
 export function findFileSymbols(index: MCPIndex, file: string): { filePath: string; symbols: MCPSymbol[] } | null {
-  const fileLower = file.toLowerCase();
-  for (const [filePath, symbols] of index.byFile) {
-    if (filePath.toLowerCase().endsWith(fileLower)) {
-      return { filePath, symbols };
-    }
+  const resolution = resolveFileSymbols(index, file);
+  return resolution.match;
+}
+
+export function resolveFileSymbols(
+  index: MCPIndex,
+  file: string,
+): {
+  match: { filePath: string; symbols: MCPSymbol[] } | null;
+  candidates: string[];
+  ambiguity: 'none' | 'ambiguous';
+} {
+  const raw = file.replace(/\\/g, '/');
+  const normalized = raw.toLowerCase();
+  const trimmed = normalized.replace(/^\.?\//, '');
+  const fileName = trimmed.split('/').pop() || trimmed;
+
+  const entries = [...index.byFile.entries()].map(([filePath, symbols]) => ({ filePath, symbols }));
+
+  const exactRelPath = entries.filter(({ filePath }) => filePath.toLowerCase() === trimmed);
+  if (exactRelPath.length === 1) {
+    return { match: exactRelPath[0], candidates: [], ambiguity: 'none' };
   }
-  return null;
+
+  const exactFileName = entries.filter(({ filePath }) => filePath.toLowerCase().split('/').pop() === fileName);
+  if (exactFileName.length === 1) {
+    return { match: exactFileName[0], candidates: [], ambiguity: 'none' };
+  }
+
+  const suffixMatches = entries.filter(({ filePath }) => filePath.toLowerCase().endsWith(trimmed));
+  if (suffixMatches.length === 1) {
+    return { match: suffixMatches[0], candidates: [], ambiguity: 'none' };
+  }
+
+  const candidates = (suffixMatches.length > 0 ? suffixMatches : exactFileName).map(({ filePath }) => filePath);
+  return {
+    match: null,
+    candidates,
+    ambiguity: candidates.length > 1 ? 'ambiguous' : 'none',
+  };
 }
 
 export function readSymbolBody(index: MCPIndex, symbol: MCPSymbol, maxLines?: number): string {

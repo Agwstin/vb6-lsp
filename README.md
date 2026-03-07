@@ -1,6 +1,6 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-3.3.1-1f6feb)](./package.json)
+[![Version](https://img.shields.io/badge/version-3.3.2-1f6feb)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
 [![Tests](https://img.shields.io/badge/tests-26%20passing-2da44e)](./tests)
 
