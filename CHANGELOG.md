@@ -1,14 +1,14 @@
 # Changelog
 
-## 3.4.0 - Unreleased
+## 3.4.0 - 2026-08-12
 
-This is the unreleased 3.4.0 source candidate. It is not the public GitHub release: the latest published release remains 3.3.2 until a clean verification and install smoke test are complete.
+This release promotes the 3.4.0 improvement loop to the public GitHub Releases channel.
 
-The telemetry figures and prior suite claim from the existing worktree are historical evidence, not results of the current cycle. The maintainer-provided follow-up gate compiled the pre-resource candidate, passed 63/63 tests, reported zero npm audit vulnerabilities, and produced a fresh VSIX whose required runtime files are present without telemetry/log/launch leaks. The later `inspect_frx`/`inspect_res` source slices still need that same compiled/package gate. Real-project/clean-install validation remains pending.
+The telemetry figures and prior suite claim from the existing worktree remain historical evidence. The maintainer-provided compiled gate passed 71/71 tests; package verification, a 374-file VSIX inspection, packaged MCP checks, a clean-profile install, and a real-project protocol pass were completed before release.
 
 Telemetry-driven rescue release: 7,072 real MCP calls showed `search_code` missing 32.8%, `read_function` erroring 13.5%, and symbol lookups whiffing ~20%. Every failure class now has a recovery path.
 
-Current candidate additions include a shared open-document snapshot path, consistent `.ctl` UserControl/`.dsr` limitation policy, focused provider regressions including cancellation-aware references, repository-external MCP cache defaults, deterministic Node 22/24 CI lanes, contributor/security intake documents, a checked-in marketplace icon and VSIX runtime-dependency/content guard, explicit single-root documentation, and bounded read-only `inspect_frx`/`inspect_res` MCP slices. The non-resource additions have compiled/protocol evidence from the maintainer gate; the resource source slices still need a fresh compiled MCP/package gate. Clean-install and real-project smoke remain open.
+Current release additions include a shared open-document snapshot path, consistent `.ctl` UserControl/`.dsr` limitation policy, focused provider regressions including cancellation-aware references, repository-external MCP cache defaults, deterministic Node 22/24 CI lanes, contributor/security intake documents, a checked-in marketplace icon and VSIX runtime-dependency/content guard, explicit single-root documentation, and bounded read-only `inspect_frx`/`inspect_res` MCP slices. Clean-install, packaged resource, and real-project protocol evidence are recorded in the release notes.
 
 - **Argument aliases**: name-taking tools accept `symbol`/`routine`/`function`, file-taking tools accept `path`/`module`/`filename`, `search_code` accepts `text`/`pattern`/`q`. Previously `find_callers {symbol}` silently searched for `undefined`. Missing args in every spelling now return explicit `invalid_args` with `accepted_aliases`.
 - **`Module.Proc` names**: `read_function`, `find_symbol`, `find_references`, call-graph and analysis tools strip trailing `()` and understand qualified names (`modShared.UseShared`).

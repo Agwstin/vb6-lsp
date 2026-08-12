@@ -1,6 +1,6 @@
 # VB6 Language Server
 
-[![Version](https://img.shields.io/badge/version-3.4.0--unreleased-f0ad4e)](./package.json)
+[![Version](https://img.shields.io/badge/version-3.4.0-2ea043)](./package.json)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](./LICENSE)
 [![CI](https://github.com/Agwstin/vb6-lsp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Agwstin/vb6-lsp/actions/workflows/ci.yml)
 
@@ -63,11 +63,11 @@ drop-in replacement for the VB6 IDE.
 
 ## Install
 
-`3.4.0` is the current unreleased source candidate. There is no Marketplace listing, Open VSX listing, or `v3.4.0` VSIX published yet. The [public GitHub Releases](https://github.com/Agwstin/vb6-lsp/releases) channel currently contains `v3.3.2`; use it only when that published version is acceptable.
+`3.4.0` is the latest GitHub release. Download the VSIX from the [v3.4.0 release page](https://github.com/Agwstin/vb6-lsp/releases/tag/v3.4.0) and install it with `code --install-extension <downloaded-vsix>`. Marketplace and Open VSX listings are not published yet.
 
-For the current source candidate:
+For source development or a local build:
 
-The source setup requires Node.js 22 or newer. CI exercises Node.js 22 and 24 on Windows; the published `v3.3.2` artifact has its own historical support boundary.
+The source setup requires Node.js 22 or newer. CI exercises Node.js 22 and 24 on Windows.
 
 ```bash
 git clone https://github.com/Agwstin/vb6-lsp.git
@@ -96,7 +96,7 @@ After `npm test` has produced the compiled `out/` tree, use the stronger artifac
 npm run verify:package:built
 ```
 
-`npm run package:vsix` runs the strong compiled-output guard before invoking `vsce`, so it refuses to create an artifact from stale or incomplete `out/` files. A pre-resource 3.4.0 candidate package was inspected and contained the required runtime files without local telemetry/launch files; a fresh package containing the resource tools remains a release gate. The clean-profile check remains a release gate; see [the gate follow-up](docs/improvement-cycle-2026-08-05-gate.md).
+`npm run package:vsix` runs the strong compiled-output guard before invoking `vsce`, so it refuses to create an artifact from stale or incomplete `out/` files. The published 3.4.0 package contains the required runtime files without local telemetry/launch files and was installed in a disposable VS Code profile; see [the gate follow-up](docs/improvement-cycle-2026-08-05-gate.md).
 
 The exact clean-profile checklist, acceptance observations, and screenshot/GIF capture boundary are in [docs/clean-vsix-smoke.md](docs/clean-vsix-smoke.md).
 
@@ -414,7 +414,7 @@ The repo also includes a VS Code launch configuration that starts an Extension H
 
 ## Scope
 
-The current source candidate positions `vb6-lsp` as both a practical VB6 editor integration and an agent-first MCP analysis surface:
+The 3.4.0 release positions `vb6-lsp` as both a practical VB6 editor integration and an agent-first MCP analysis surface:
 
 - portable workspace discovery via `.vbp`
 - project-wide symbol search and navigation

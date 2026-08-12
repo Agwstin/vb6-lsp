@@ -1,8 +1,7 @@
 # Issue #1 response draft — FRX/RES
 
 > Draft only. Do not post without explicit maintainer approval. This draft is
-> intentionally scoped to the current source candidate, not a published 3.4.0
-> release.
+> intentionally scoped to the published 3.4.0 read-only resource slice.
 
 Thanks for pointing me to [VB6_lsp](https://github.com/bhattumang7/VB6_lsp). I
 checked its public README and the `.frm`/`.ctl` companion and `.res` support it

@@ -1,6 +1,6 @@
-# VB6 Language Server 3.4.0 (Unreleased)
+# VB6 Language Server 3.4.0
 
-`3.4.0` is the current source candidate. The public GitHub release is still `v3.3.2`; no Marketplace, Open VSX, or `v3.4.0` VSIX artifact has been published.
+`3.4.0` is published on GitHub Releases. Marketplace and Open VSX listings are not published yet.
 
 ## What changed
 
@@ -45,7 +45,7 @@ The candidate also adds regression fixtures for ranking, project references, for
 
 ## Upgrade and installation
 
-For the published artifact, use the [GitHub Releases page](https://github.com/Agwstin/vb6-lsp/releases) and select `v3.3.2`. To try this candidate from source, follow the README install steps, build it, and package the VSIX locally. Do not treat a source checkout as a published release.
+For the published artifact, use the [v3.4.0 GitHub Release](https://github.com/Agwstin/vb6-lsp/releases/tag/v3.4.0) and install its attached VSIX. For source development, follow the README setup steps and package locally. The release asset is the verified install path.
 
 ## Known limits
 
