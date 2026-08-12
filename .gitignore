@@ -6,3 +6,4 @@ vb6-mcp-launch.log
 vb6-mcp-server.mjs
 run-vb6-mcp.cmd
 telemetry/
+.vb6-lsp-cache/

@@ -1,0 +1,53 @@
+name: VB6 compatibility report
+description: Report a navigation or analysis result from a real VB6 project without sharing proprietary source.
+title: "[Compatibility]: "
+labels:
+  - compatibility
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach proprietary source or a complete customer project. Use a reduced fixture, redacted excerpt, or a description of the construct instead.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: State the version or short commit tested.
+    validations:
+      required: true
+  - type: input
+    id: project_shape
+    attributes:
+      label: Project shape
+      description: Describe the number of .vbp projects and component types, without names or paths.
+      placeholder: "3 .vbp projects; .bas/.cls/.frm/.ctl; project references"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, Node.js version, editor/client, and LSP or MCP surface.
+    validations:
+      required: true
+  - type: textarea
+    id: construct
+    attributes:
+      label: Reduced construct
+      description: Describe or attach a synthetic fixture that preserves the failure; do not attach proprietary source.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: State the expected definition, references, diagnostic, completion, or MCP result.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result and evidence
+      description: Include exact commands, outputs, and whether the issue reproduces in the checked-in fixtures.
+    validations:
+      required: true

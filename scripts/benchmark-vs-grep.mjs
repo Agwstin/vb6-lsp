@@ -114,7 +114,7 @@ function measure(fn, iterations = 5) {
 }
 
 function grepWholeWord(root, query) {
-  return runGitGrep(root, ['-n', '-I', '-w', '-m', '200', '--', query, '--', '*.bas', '*.cls', '*.frm']);
+  return runGitGrep(root, ['-n', '-I', '-w', '-m', '200', '--', query, '--', '*.bas', '*.cls', '*.frm', '*.ctl']);
 }
 
 function grepScoped(root, query, scope) {
@@ -189,7 +189,7 @@ function discoverDefaultSourceDirs(root) {
 
     let hasVb6Files = false;
     for (const child of children) {
-      if (child.isFile() && /\.(bas|cls|frm)$/i.test(child.name)) {
+      if (child.isFile() && /\.(bas|cls|frm|ctl)$/i.test(child.name)) {
         hasVb6Files = true;
         break;
       }

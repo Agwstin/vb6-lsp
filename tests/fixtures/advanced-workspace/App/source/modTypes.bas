@@ -3,6 +3,7 @@ Option Explicit
 
 Public Type tPlayerState
     Name As String
+    Type As String
     Level As Long
 End Type
 

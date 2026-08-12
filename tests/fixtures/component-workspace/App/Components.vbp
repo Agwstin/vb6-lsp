@@ -1,0 +1,5 @@
+Type=OleControl
+UserControl=ucWidget; source\ucWidget.ctl
+Designer=DesignerOnly; source\DesignerOnly.dsr
+Startup="Sub Main"
+Name="ComponentApp"

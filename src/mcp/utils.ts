@@ -1,4 +1,5 @@
 import { MCPSymbol, MCPIndex } from '../server/indexer/mcp-bridge';
+import { stripVB6ComponentExtension } from '../shared/components';
 
 export function formatSignature(symbol: MCPSymbol): string {
   let text = `${symbol.visibility} ${symbol.kind} ${symbol.name}`;
@@ -25,18 +26,34 @@ export function findFileSymbols(index: MCPIndex, file: string): { filePath: stri
   return resolution.match;
 }
 
+export interface FileResolutionOptions {
+  /** Workspace-relative dirs (forward slashes) to prefer when several files share a name. */
+  preferDirs?: string[];
+  /** When ambiguous, prefer the candidate that actually contains this routine. */
+  routineName?: string;
+}
+
+export interface FileResolution {
+  match: { filePath: string; symbols: MCPSymbol[] } | null;
+  /** Ranked best-first when ambiguous. */
+  candidates: string[];
+  ambiguity: 'none' | 'ambiguous';
+  /** Set when an ambiguous name was auto-resolved, explains why. */
+  resolution?: string;
+}
+
 export function resolveFileSymbols(
   index: MCPIndex,
   file: string,
-): {
-  match: { filePath: string; symbols: MCPSymbol[] } | null;
-  candidates: string[];
-  ambiguity: 'none' | 'ambiguous';
-} {
+  opts?: FileResolutionOptions,
+): FileResolution {
   const raw = file.replace(/\\/g, '/');
   const normalized = raw.toLowerCase();
   const trimmed = normalized.replace(/^\.?\//, '');
   const fileName = trimmed.split('/').pop() || trimmed;
+  if (!trimmed) {
+    return { match: null, candidates: [], ambiguity: 'none' };
+  }
 
   const entries = [...index.byFile.entries()].map(([filePath, symbols]) => ({ filePath, symbols }));
 
@@ -55,12 +72,100 @@ export function resolveFileSymbols(
     return { match: suffixMatches[0], candidates: [], ambiguity: 'none' };
   }
 
-  const candidates = (suffixMatches.length > 0 ? suffixMatches : exactFileName).map(({ filePath }) => filePath);
+  let ambiguousSet = suffixMatches.length > 0 ? suffixMatches : exactFileName;
+
+  if (ambiguousSet.length === 0) {
+    // Fuzzy rescue: only an EXACT normalized basename (ignores case, separators,
+    // missing extension) may auto-match. Contains-matches are candidates only —
+    // auto-matching them would hijack lookups for genuinely-new files on disk
+    // before the stale-index probe gets a chance to reindex.
+    const target = normalizeFileToken(fileName);
+    if (target.length >= 3) {
+      const fuzzy = entries.filter(({ filePath }) => {
+        const base = filePath.split('/').pop() || filePath;
+        const baseNorm = normalizeFileToken(base);
+        return baseNorm === target || baseNorm.startsWith(target) || baseNorm.includes(target);
+      });
+      const exactNorm = fuzzy.filter(({ filePath }) => {
+        const base = filePath.split('/').pop() || filePath;
+        return normalizeFileToken(base) === target;
+      });
+      if (exactNorm.length === 1) {
+        return { match: exactNorm[0], candidates: [], ambiguity: 'none', resolution: 'fuzzy-filename' };
+      }
+      ambiguousSet = exactNorm.length > 0 ? exactNorm : fuzzy;
+    }
+  }
+
+  if (ambiguousSet.length > 1) {
+    const preferDirs = (opts?.preferDirs || [])
+      .map((dir) => dir.replace(/\\/g, '/').replace(/^\.?\//, '').replace(/\/+$/, '').toLowerCase())
+      .filter(Boolean);
+    const routineLower = opts?.routineName ? opts.routineName.toLowerCase() : '';
+    // The directory portion the caller actually typed is the strongest signal:
+    // 'AppB/modShared.bas' must never resolve to AppA just because AppA is preferred.
+    const requestedDir = trimmed.includes('/') ? trimmed.slice(0, trimmed.lastIndexOf('/')) : '';
+
+    const ranked = ambiguousSet
+      .map((entry) => {
+        const pathLower = entry.filePath.toLowerCase();
+        const matchesRequestedDir = requestedDir
+          ? pathLower.startsWith(requestedDir + '/') || pathLower.includes('/' + requestedDir + '/')
+          : false;
+        const hasRoutine = routineLower
+          ? entry.symbols.some((symbol) =>
+            symbol.name.toLowerCase() === routineLower && isRoutineKind(symbol.kind))
+          : false;
+        const inPreferred = preferDirs.some((dir) => pathLower.startsWith(dir + '/'));
+        return { entry, matchesRequestedDir, hasRoutine, inPreferred };
+      })
+      .sort((left, right) =>
+        Number(right.matchesRequestedDir) - Number(left.matchesRequestedDir) ||
+        Number(right.hasRoutine) - Number(left.hasRoutine) ||
+        Number(right.inPreferred) - Number(left.inPreferred) ||
+        left.entry.filePath.length - right.entry.filePath.length,
+      );
+
+    const top = ranked[0];
+    const second = ranked[1];
+    const strictlyBetter =
+      top.matchesRequestedDir !== second.matchesRequestedDir ||
+      top.hasRoutine !== second.hasRoutine ||
+      top.inPreferred !== second.inPreferred;
+    if (strictlyBetter) {
+      const resolution = top.matchesRequestedDir !== second.matchesRequestedDir
+        ? 'matches-request-path'
+        : top.hasRoutine !== second.hasRoutine
+          ? 'contains-routine'
+          : 'preferred-source-dir';
+      return {
+        match: top.entry,
+        candidates: ranked.slice(1).map(({ entry }) => entry.filePath),
+        ambiguity: 'none',
+        resolution,
+      };
+    }
+    return {
+      match: null,
+      candidates: ranked.map(({ entry }) => entry.filePath),
+      ambiguity: 'ambiguous',
+    };
+  }
+
+  const candidates = ambiguousSet.map(({ filePath }) => filePath);
   return {
     match: null,
     candidates,
     ambiguity: candidates.length > 1 ? 'ambiguous' : 'none',
   };
+}
+
+function normalizeFileToken(value: string): string {
+  return stripVB6ComponentExtension(value.toLowerCase()).replace(/[^a-z0-9]/g, '');
+}
+
+function isRoutineKind(kind: string): boolean {
+  return kind === 'Sub' || kind === 'Function' || kind === 'Property' || kind === 'Declare';
 }
 
 export function readSymbolBody(index: MCPIndex, symbol: MCPSymbol, maxLines?: number): string {

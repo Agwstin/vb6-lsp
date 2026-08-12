@@ -21,4 +21,5 @@ test('diagnostics warn when a project file depends on a missing external referen
   const diagnostics = computeDiagnostics(filePath, indexer.getIndex(), config);
 
   assert.ok(diagnostics.some((diagnostic) => diagnostic.message.includes('Missing project reference')));
+  assert.ok(!diagnostics.some((diagnostic) => diagnostic.message.includes('stdole2.tlb')));
 });

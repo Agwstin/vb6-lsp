@@ -11,6 +11,7 @@ import { findIdentifierOccurrences } from '../indexer/parser';
 import { resolveSymbolSet } from '../resolution';
 import { getSymbolsForType } from '../memberAccess';
 import { getDeclaredType, inferResolvedSymbolType } from '../typeInference';
+import type { SourceTextProvider } from '../documentStore';
 
 export const VB6_SEMANTIC_TOKEN_TYPES = [
   'class',
@@ -34,17 +35,18 @@ export const VB6_SEMANTIC_TOKEN_LEGEND: SemanticTokensLegend = {
 export function handleSemanticTokens(
   params: SemanticTokensParams,
   index: VB6Index,
+  source?: SourceTextProvider,
 ): SemanticTokens {
   const absolutePath = uriToPath(params.textDocument.uri);
   const filePath = normalizePath(absolutePath);
-  const lines = readLines(absolutePath);
+  const lines = source?.readLines(absolutePath) || readLines(absolutePath);
   const builder = new SemanticTokensBuilder();
   const pushed = new Set<string>();
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const occurrences = findIdentifierOccurrences(lines[lineIndex]);
     for (const occurrence of occurrences) {
-      const symbol = resolveSemanticSymbol(index, absolutePath, filePath, lines[lineIndex], occurrence.name, occurrence.start, lineIndex + 1);
+      const symbol = resolveSemanticSymbol(index, absolutePath, filePath, lines[lineIndex], occurrence.name, occurrence.start, lineIndex + 1, source);
       if (!symbol) continue;
 
       const tokenType = mapTokenType(symbol);
@@ -69,8 +71,9 @@ function resolveSemanticSymbol(
   name: string,
   start: number,
   line: number,
+  source?: SourceTextProvider,
 ): VB6Symbol | null {
-  const member = resolveMemberSemanticSymbol(index, absoluteFile, lineText, name, start, line);
+  const member = resolveMemberSemanticSymbol(index, absoluteFile, lineText, name, start, line, source);
   if (member) return member;
 
   const matches = index.byName.get(name.toLowerCase()) || [];
@@ -97,6 +100,7 @@ function resolveMemberSemanticSymbol(
   name: string,
   start: number,
   line: number,
+  source?: SourceTextProvider,
 ): VB6Symbol | null {
   let cursor = start;
   while (cursor > 0 && /\s/.test(lineText[cursor - 1])) cursor--;
@@ -112,7 +116,7 @@ function resolveMemberSemanticSymbol(
   const resolved = resolveSymbolSet(index, receiver, absoluteFile, line);
   const primary = resolved.definitions[0];
   if (!primary) return null;
-  const typeName = getDeclaredType(primary) || inferResolvedSymbolType(index, resolved, absoluteFile, line);
+  const typeName = getDeclaredType(primary) || inferResolvedSymbolType(index, resolved, absoluteFile, line, undefined, source);
   if (!typeName) return null;
 
   return getSymbolsForType(index, typeName, name)[0] || null;

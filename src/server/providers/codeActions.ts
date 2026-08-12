@@ -9,11 +9,12 @@ import {
 } from 'vscode-languageserver';
 import * as fs from 'fs';
 import { uriToPath } from '../utils';
+import type { SourceTextProvider } from '../documentStore';
 
-export function handleCodeActions(params: CodeActionParams): CodeAction[] {
+export function handleCodeActions(params: CodeActionParams, source?: SourceTextProvider): CodeAction[] {
   const actions: CodeAction[] = [];
   const filePath = uriToPath(params.textDocument.uri);
-  const fileText = readFile(filePath);
+  const fileText = source?.readText(filePath) ?? readFile(filePath);
 
   for (const diagnostic of params.context.diagnostics) {
     if (diagnostic.source !== 'vb6-lsp') continue;

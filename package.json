@@ -1,16 +1,30 @@
 {
   "name": "vb6-lsp",
   "displayName": "VB6 Language Server",
-  "description": "Language Server Protocol support for Visual Basic 6 (.bas, .cls, .frm)",
-  "version": "3.3.2",
+  "description": "VB6 LSP and MCP analysis for .vbp projects (.bas, .cls, .frm, .ctl)",
+  "version": "3.4.0",
   "publisher": "vb6lsp",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Agwstin/vb6-lsp.git"
+  },
+  "homepage": "https://github.com/Agwstin/vb6-lsp#readme",
+  "bugs": {
+    "url": "https://github.com/Agwstin/vb6-lsp/issues"
+  },
+  "icon": "images/icon.png",
   "engines": {
+    "node": ">=22.0.0",
     "vscode": "^1.85.0"
   },
   "categories": [
     "Programming Languages"
   ],
+  "galleryBanner": {
+    "color": "#1f6feb",
+    "theme": "dark"
+  },
   "activationEvents": [
     "onLanguage:vb6"
   ],
@@ -26,7 +40,8 @@
         "extensions": [
           ".bas",
           ".cls",
-          ".frm"
+          ".frm",
+          ".ctl"
         ],
         "configuration": "./language-configuration.json"
       }
@@ -71,7 +86,12 @@
     "lsp:stdio": "node out/server/server.js --stdio",
     "mcp:stdio": "node out/mcp/mcp/server.js",
     "benchmark": "npm run build:all && node scripts/benchmark-vs-grep.mjs",
-    "package:vsix": "npx @vscode/vsce package",
+    "benchmark:core": "node scripts/benchmark-core.mjs",
+    "benchmark:rescue": "node scripts/benchmark-rescue.mjs",
+    "verify:package": "node scripts/verify-package-config.mjs",
+    "verify:package:built": "node scripts/verify-package-config.mjs --require-built",
+    "telemetry:report": "node scripts/telemetry-report.mjs",
+    "package:vsix": "npm run verify:package:built && npx @vscode/vsce package",
     "test": "npm run build:all && node scripts/run-tests.mjs",
     "watch": "concurrently \"tsc -w -p tsconfig.json\" \"tsc -w -p tsconfig.server.json\"",
     "postinstall": "cd . && echo Done"
@@ -82,7 +102,12 @@
     "lsp",
     "language-server",
     "mcp",
-    "legacy"
+    "legacy",
+    "visual-basic",
+    "vscode-extension",
+    "code-navigation",
+    "static-analysis",
+    "ai-coding"
   ],
   "dependencies": {
     "vscode-languageclient": "^9.0.1",

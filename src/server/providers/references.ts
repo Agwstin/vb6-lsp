@@ -1,4 +1,5 @@
 import {
+  CancellationToken,
   ReferenceParams,
   Location,
   Range,
@@ -9,12 +10,17 @@ import { VB6Index } from '../indexer/types';
 import { getWordAtPosition, pathToUri, uriToPath, normalizePath } from '../utils';
 import { findIdentifierOccurrences } from '../indexer/parser';
 import { getSearchTargets, resolveSymbolSet } from '../resolution';
+import type { SourceTextProvider } from '../documentStore';
 
 export function handleReferences(
   params: ReferenceParams,
   documents: { get(uri: string): TextDocument | undefined },
   index: VB6Index,
+  source?: SourceTextProvider,
+  token?: CancellationToken,
 ): Location[] | null {
+  if (token?.isCancellationRequested) return null;
+
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return null;
 
@@ -36,15 +42,15 @@ export function handleReferences(
   const locations: Location[] = [];
 
   for (const target of targets) {
-    let lines: string[];
-    try {
-      lines = fs.readFileSync(target.filePath, 'latin1').split(/\r?\n/);
-    } catch {
-      continue;
-    }
+    if (token?.isCancellationRequested) return null;
+
+    const lines = source?.readLines(target.filePath) || readDiskLines(target.filePath);
+    if (!lines) continue;
 
     const lastLine = Math.min(lines.length, target.lineEnd);
     for (let i = Math.max(1, target.lineStart); i <= lastLine; i++) {
+      if (token?.isCancellationRequested) return null;
+
       const occurrences = findIdentifierOccurrences(lines[i - 1], word);
       for (const occurrence of occurrences) {
         const key = `${normalizePath(target.filePath)}:${i}`;
@@ -61,4 +67,12 @@ export function handleReferences(
   }
 
   return locations;
+}
+
+function readDiskLines(filePath: string): string[] | null {
+  try {
+    return fs.readFileSync(filePath, 'latin1').split(/\r?\n/);
+  } catch {
+    return null;
+  }
 }

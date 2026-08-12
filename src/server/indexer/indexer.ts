@@ -27,6 +27,8 @@ import {
   parseTypeFieldDeclaration,
 } from './parser';
 import { normalizePath } from '../utils';
+import type { SourceTextProvider } from '../documentStore';
+import { isSupportedVB6Source } from '../../shared/components';
 
 export class VB6Indexer {
   private index: VB6Index = {
@@ -37,10 +39,16 @@ export class VB6Indexer {
 
   private rootDir: string;
   private sourceDirs: string[];
+  private sourceTextProvider?: Pick<SourceTextProvider, 'getOpenText'>;
 
-  constructor(rootDir: string, sourceDirs: string[]) {
+  constructor(
+    rootDir: string,
+    sourceDirs: string[],
+    sourceTextProvider?: Pick<SourceTextProvider, 'getOpenText'>,
+  ) {
     this.rootDir = rootDir;
     this.sourceDirs = sourceDirs;
+    this.sourceTextProvider = sourceTextProvider;
   }
 
   getIndex(): VB6Index {
@@ -48,13 +56,24 @@ export class VB6Indexer {
   }
 
   buildFullIndex(): number {
+    this.index = {
+      byName: new Map(),
+      byFile: new Map(),
+      files: new Set(),
+    };
+
     let totalSymbols = 0;
+    const seenFiles = new Set<string>();
 
     for (const dir of this.sourceDirs) {
       if (!fs.existsSync(dir)) continue;
 
       const files = this.collectFiles(dir);
       for (const file of files) {
+        const normPath = normalizePath(file);
+        if (seenFiles.has(normPath)) continue;
+        seenFiles.add(normPath);
+
         const symbols = this.indexFile(file);
         totalSymbols += symbols.length;
       }
@@ -66,9 +85,14 @@ export class VB6Indexer {
   rebuildFile(filePath: string): void {
     this.removeFile(filePath);
 
-    if (fs.existsSync(filePath)) {
-      this.indexFile(filePath);
-    }
+    const content = this.readSource(filePath);
+    if (content !== null) this.indexFile(filePath, content);
+  }
+
+  /** Replace one file from an editor snapshot without rereading stale disk content. */
+  upsertFile(filePath: string, content: string): void {
+    this.removeFile(filePath);
+    this.indexFile(filePath, content);
   }
 
   removeFile(filePath: string): void {
@@ -106,7 +130,7 @@ export class VB6Indexer {
         if (entry.isDirectory()) {
           if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'out') continue;
           results.push(...this.collectFiles(full));
-        } else if (/\.(bas|cls|frm)$/i.test(entry.name)) {
+        } else if (isSupportedVB6Source(entry.name)) {
           results.push(full);
         }
       }
@@ -117,16 +141,16 @@ export class VB6Indexer {
     return results;
   }
 
-  private indexFile(filePath: string): VB6Symbol[] {
-    let content: string;
-    try {
-      content = fs.readFileSync(filePath, 'latin1');
-    } catch {
-      return [];
+  private indexFile(filePath: string, content?: string): VB6Symbol[] {
+    const source = content ?? this.readSource(filePath);
+    if (source === null) return [];
+
+    const lines = source.split(/\r?\n/);
+    const normPath = normalizePath(filePath);
+    if (this.index.files.has(normPath)) {
+      this.removeFile(filePath);
     }
 
-    const lines = content.split(/\r?\n/);
-    const normPath = normalizePath(filePath);
     const relPath = path.relative(this.rootDir, filePath).replace(/\\/g, '/');
     const moduleName = this.detectModuleName(filePath, lines);
     const fileExtension = path.extname(filePath).toLowerCase();
@@ -196,7 +220,7 @@ export class VB6Indexer {
 
       const currentRoutine = this.findRoutineAtLine(routines, lineNum);
 
-      if (fileExtension === '.frm') {
+      if (fileExtension === '.frm' || fileExtension === '.ctl') {
         const controlMatch = statement.match(BEGIN_CONTROL_RE);
         if (controlMatch) {
           const controlType = controlMatch[1].split('.').pop() || controlMatch[1];
@@ -269,7 +293,7 @@ export class VB6Indexer {
       }
 
       const typeMatch = statement.match(TYPE_RE);
-      if (typeMatch) {
+      if (typeMatch && !openTypeSymbol && !openEnumSymbol) {
         openTypeSymbol = {
           name: typeMatch[2],
           kind: 'Type',
@@ -290,7 +314,7 @@ export class VB6Indexer {
       }
 
       const enumMatch = statement.match(ENUM_RE);
-      if (enumMatch) {
+      if (enumMatch && !openTypeSymbol && !openEnumSymbol) {
         openEnumSymbol = {
           name: enumMatch[2],
           kind: 'Enum',
@@ -448,6 +472,17 @@ export class VB6Indexer {
     }
 
     return symbols;
+  }
+
+  private readSource(filePath: string): string | null {
+    const openText = this.sourceTextProvider?.getOpenText(filePath);
+    if (openText !== undefined) return openText;
+
+    try {
+      return fs.readFileSync(filePath, 'latin1');
+    } catch {
+      return null;
+    }
   }
 
   private detectModuleName(filePath: string, lines: string[]): string {

@@ -5,6 +5,7 @@ import { ResolvedSymbolSet } from './resolution';
 import { findEnclosingRoutine, resolveSymbolSet } from './resolution';
 import { getSymbolsForType } from './memberAccess';
 import { normalizePath } from './utils';
+import type { SourceTextProvider } from './documentStore';
 
 export function inferResolvedSymbolType(
   index: VB6Index,
@@ -12,6 +13,7 @@ export function inferResolvedSymbolType(
   currentFile: string,
   line: number,
   document?: TextDocument,
+  source?: SourceTextProvider,
 ): string | null {
   const definition = resolved.definitions[0];
   if (!definition) return null;
@@ -24,14 +26,14 @@ export function inferResolvedSymbolType(
   }
 
   const filePath = resolved.definitions[0].file;
-  const lines = readLines(filePath, document);
+  const lines = readLines(filePath, document, source);
   if (!lines) return null;
 
   const routine = findEnclosingRoutine(index, normalizePath(filePath), line);
   const lineStart = routine ? routine.line - 1 : 0;
   const lineEnd = Math.max(lineStart, line - 1);
 
-  return inferTypeFromAssignments(index, filePath, lines.slice(lineStart, lineEnd + 1), definition.name, lineStart + 1);
+  return inferTypeFromAssignments(index, filePath, lines.slice(lineStart, lineEnd + 1), definition.name, lineStart + 1, source);
 }
 
 export function getDeclaredType(symbol: VB6Symbol): string | null {
@@ -46,7 +48,14 @@ export function getDeclaredType(symbol: VB6Symbol): string | null {
   return null;
 }
 
-function inferTypeFromAssignments(index: VB6Index, currentFile: string, lines: string[], name: string, firstLineNumber: number): string | null {
+function inferTypeFromAssignments(
+  index: VB6Index,
+  currentFile: string,
+  lines: string[],
+  name: string,
+  firstLineNumber: number,
+  source?: SourceTextProvider,
+): string | null {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const newPattern = new RegExp(`^(?:\\s*Set\\s+)?${escapedName}\\s*=\\s*New\\s+([\\w.]+)`, 'i');
   const callPattern = new RegExp(`^(?:\\s*Set\\s+)?${escapedName}\\s*=\\s*([\\w.]+)\\s*\\(`, 'i');
@@ -66,7 +75,7 @@ function inferTypeFromAssignments(index: VB6Index, currentFile: string, lines: s
 
     const memberCallMatch = line.match(memberCallPattern);
     if (memberCallMatch) {
-      const type = inferMemberResultType(index, currentFile, memberCallMatch[1], memberCallMatch[2]);
+      const type = inferMemberResultType(index, currentFile, memberCallMatch[1], memberCallMatch[2], source);
       if (type) return type;
     }
 
@@ -78,7 +87,7 @@ function inferTypeFromAssignments(index: VB6Index, currentFile: string, lines: s
 
     const memberAccessMatch = line.match(memberAccessPattern);
     if (memberAccessMatch) {
-      const type = inferMemberResultType(index, currentFile, memberAccessMatch[1], memberAccessMatch[2]);
+      const type = inferMemberResultType(index, currentFile, memberAccessMatch[1], memberAccessMatch[2], source);
       if (type) return type;
     }
 
@@ -109,13 +118,21 @@ function inferVariableType(index: VB6Index, currentFile: string, variableName: s
   return getDeclaredType(definition);
 }
 
-function inferMemberResultType(index: VB6Index, currentFile: string, receiverName: string, memberName: string): string | null {
+function inferMemberResultType(
+  index: VB6Index,
+  currentFile: string,
+  receiverName: string,
+  memberName: string,
+  source?: SourceTextProvider,
+): string | null {
   const receiverResolved = resolveSymbolSet(index, receiverName, currentFile, Number.MAX_SAFE_INTEGER);
   const receiverType = getDeclaredType(receiverResolved.definitions[0]) || inferResolvedSymbolType(
     index,
     receiverResolved,
     currentFile,
     Number.MAX_SAFE_INTEGER,
+    undefined,
+    source,
   );
   if (!receiverType) return null;
 
@@ -124,10 +141,12 @@ function inferMemberResultType(index: VB6Index, currentFile: string, receiverNam
   return typedMember?.returnType || null;
 }
 
-function readLines(filePath: string, document?: TextDocument): string[] | null {
+function readLines(filePath: string, document?: TextDocument, source?: SourceTextProvider): string[] | null {
   if (document) {
     return document.getText().split(/\r?\n/);
   }
+
+  if (source) return source.readLines(filePath);
 
   try {
     return fs.readFileSync(filePath, 'latin1').split(/\r?\n/);

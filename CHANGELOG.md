@@ -1,5 +1,39 @@
 # Changelog
 
+## 3.4.0 - Unreleased
+
+This is the unreleased 3.4.0 source candidate. It is not the public GitHub release: the latest published release remains 3.3.2 until a clean verification and install smoke test are complete.
+
+The telemetry figures and prior suite claim from the existing worktree are historical evidence, not results of the current cycle. The maintainer-provided follow-up gate compiled the pre-resource candidate, passed 63/63 tests, reported zero npm audit vulnerabilities, and produced a fresh VSIX whose required runtime files are present without telemetry/log/launch leaks. The later `inspect_frx`/`inspect_res` source slices still need that same compiled/package gate. Real-project/clean-install validation remains pending.
+
+Telemetry-driven rescue release: 7,072 real MCP calls showed `search_code` missing 32.8%, `read_function` erroring 13.5%, and symbol lookups whiffing ~20%. Every failure class now has a recovery path.
+
+Current candidate additions include a shared open-document snapshot path, consistent `.ctl` UserControl/`.dsr` limitation policy, focused provider regressions including cancellation-aware references, repository-external MCP cache defaults, deterministic Node 22/24 CI lanes, contributor/security intake documents, a checked-in marketplace icon and VSIX runtime-dependency/content guard, explicit single-root documentation, and bounded read-only `inspect_frx`/`inspect_res` MCP slices. The non-resource additions have compiled/protocol evidence from the maintainer gate; the resource source slices still need a fresh compiled MCP/package gate. Clean-install and real-project smoke remain open.
+
+- **Argument aliases**: name-taking tools accept `symbol`/`routine`/`function`, file-taking tools accept `path`/`module`/`filename`, `search_code` accepts `text`/`pattern`/`q`. Previously `find_callers {symbol}` silently searched for `undefined`. Missing args in every spelling now return explicit `invalid_args` with `accepted_aliases`.
+- **`Module.Proc` names**: `read_function`, `find_symbol`, `find_references`, call-graph and analysis tools strip trailing `()` and understand qualified names (`modShared.UseShared`).
+- **Ambiguous filename auto-resolution**: duplicate basenames resolve via (1) the candidate containing the requested routine, (2) the candidate inside an explicitly configured source dir (`VB6_LSP_SOURCE_DIRS` beats Tools/MapEditor forks). True ties stay ambiguous, with ranked candidates capped at 10. Fuzzy basename matching handles missing extensions and odd casing.
+- **`read_function` wrong-file recovery**: when the routine is missing from the named file but globally unique, its definition is served with a `resolution_note` instead of an error; multiple matches list the actual files.
+- **`search_code` rescue pipeline**: scopes are normalized (backslashes, `./`), match as prefix or path segment (filenames work as scopes); zero hits fall back to all-tokens-on-one-line matching, then scope relaxation. `search_meta` reports `{stage, scopeRelaxed}`. Line normalization is now lazy (faster large-workspace scans).
+- **Stale index recovery**: a long-lived server probes the snapshot (60s throttle) and rebuilds when files change; file lookups that miss but exist on disk trigger an immediate one-shot reindex — new modules are visible without manual `reindex_vb6`.
+- **Zero-result suggestions everywhere**: `find_references`, `find_callers`/`find_callees`/`trace_*` (with `known_routine`), `signature`, `type_members`, `find_state_mutations`, `analyze_symbol`, `explain_symbol` return near-miss suggestions instead of bare empties.
+- **Telemetry v4**: opt-in `VB6_LSP_TELEMETRY_CAPTURE_INPUTS` records raw text args (capped) on miss/error events only; default stays metadata-only.
+- **New benchmark**: `npm run benchmark:rescue` replays the nine telemetry failure classes through the live server — 75/75 (100%) on the ImperiumAO workspace, gated at 95%. Predicates assert the CORRECT file and `resolution_note`, the backslash-scope category requires `scopeRelaxed === false`, and the gate fails when disambiguation categories produce no scenarios despite configured source dirs.
+- **Resource inspection**: the source candidate adds `inspect_frx` for bounded read-only inspection of common `.frx`/`.ctx` short, medium, and long text, picture, font, and list records, plus `inspect_res` for standard `.res` entry metadata and `RT_STRING` values. Both reject unsafe paths and malformed/truncated input; resource writing and proprietary control bags are not claimed.
+
+Post-release adversarial review (33-agent workflow) hardening:
+
+- `read_function` with name only and multiple definitions now errors with all candidates instead of silently serving the first copy (the one critical finding).
+- Filename matches in `search_code` are basename-only and emit one result per file — a path-flavored query can no longer flood results with a file's whole body.
+- The directory the caller typed is now the STRONGEST disambiguation signal (`matches-request-path`): `AppB/modShared.bas` can never resolve to AppA because AppA is preferred.
+- Fuzzy filename matching only auto-resolves exact normalized basenames; contains-matches are candidates only, so lookups for brand-new on-disk files reach the stale-index probe instead of being hijacked.
+- Routine-containment ranking only counts real routines (Sub/Function/Property/Declare), not variables.
+- The probe reindex skips files outside every indexed source dir (provably useless rebuilds) and the cooldown plus freshness interval are env-injectable (`VB6_LSP_PROBE_COOLDOWN_MS`, `VB6_LSP_FRESHNESS_INTERVAL_MS`).
+- `batch_search_code` fallback sweeps share a 1.2s budget (`search_meta.budgetExhausted`), bounding the 4.2s worst case.
+- Filenames passed as `name` ("modFoo.bas") return a clear `invalid_args` instead of searching for routine "bas"; `find_symbol` notes when a `Module.Proc` hint contradicts the actual module.
+- Tests rewritten response-driven (no fixed sleeps — kills the startup race), covering ranking precedence conflicts, name-only duplicates, batch rescue, freshness rebuild, probe gating, cooldown, and telemetry error-path/truncation capture.
+- Prior-suite result: retained only as historical context; the current maintainer-provided full suite is 63/63.
+
 ## 3.3.2 - 2026-03-07
 
 - Improved MCP file resolution to prefer exact relative-path matches and avoid silently picking the wrong file when duplicate filenames exist across projects.

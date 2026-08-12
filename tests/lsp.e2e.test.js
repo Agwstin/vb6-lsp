@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
@@ -9,8 +11,14 @@ test('LSP indexes a .vbp workspace and resolves definition/references', async ()
   const serverScript = path.join(serverCwd, 'out', 'server', 'server.js');
   const rootPath = path.resolve(__dirname, 'fixtures', 'sample-workspace');
   const testFile = path.join(rootPath, 'Client', 'source', 'modSample.bas');
+  const telemetryDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb6-lsp-lsp-telemetry-'));
   const child = spawn('node', [serverScript, '--stdio'], {
     cwd: serverCwd,
+    env: {
+      ...process.env,
+      VB6_LSP_TELEMETRY_ENABLED: 'true',
+      VB6_LSP_TELEMETRY_DIR: telemetryDir,
+    },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
@@ -147,4 +155,11 @@ test('LSP indexes a .vbp workspace and resolves definition/references', async ()
     send({ jsonrpc: '2.0', method: 'exit', params: {} });
     child.kill();
   }
+
+  const telemetryPath = path.join(telemetryDir, 'lsp-usage.jsonl');
+  assert.ok(fs.existsSync(telemetryPath));
+  const telemetryEvents = fs.readFileSync(telemetryPath, 'utf8').trim().split(/\r?\n/).map((line) => JSON.parse(line));
+  assert.ok(telemetryEvents.some((event) => event.provider === 'definition'));
+  assert.ok(telemetryEvents.some((event) => event.provider === 'references'));
+  assert.ok(telemetryEvents.some((event) => event.provider === 'workspaceSymbol'));
 });

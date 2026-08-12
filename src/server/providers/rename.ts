@@ -11,6 +11,7 @@ import { VB6Index } from '../indexer/types';
 import { getWordAtPosition, pathToUri, uriToPath } from '../utils';
 import { findIdentifierOccurrences } from '../indexer/parser';
 import { getSearchTargets, isAmbiguousPublicDefinition, resolveSymbolSet } from '../resolution';
+import type { SourceTextProvider } from '../documentStore';
 
 export function handlePrepareRename(
   params: PrepareRenameParams,
@@ -50,6 +51,7 @@ export function handleRename(
   params: RenameParams,
   documents: { get(uri: string): TextDocument | undefined },
   index: VB6Index,
+  source?: SourceTextProvider,
 ): WorkspaceEdit | null {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return null;
@@ -74,12 +76,8 @@ export function handleRename(
   const changes: { [uri: string]: TextEdit[] } = {};
 
   for (const target of getSearchTargets(index, resolved)) {
-    let lines: string[];
-    try {
-      lines = fs.readFileSync(target.filePath, 'latin1').split(/\r?\n/);
-    } catch {
-      continue;
-    }
+    const lines = source?.readLines(target.filePath) || readDiskLines(target.filePath);
+    if (!lines) continue;
 
     const fileUri = pathToUri(target.filePath);
     const edits: TextEdit[] = [];
@@ -101,4 +99,12 @@ export function handleRename(
   }
 
   return Object.keys(changes).length > 0 ? { changes } : null;
+}
+
+function readDiskLines(filePath: string): string[] | null {
+  try {
+    return fs.readFileSync(filePath, 'latin1').split(/\r?\n/);
+  } catch {
+    return null;
+  }
 }

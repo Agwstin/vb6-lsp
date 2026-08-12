@@ -13,6 +13,7 @@ import {
   TransportKind,
   DidChangeConfigurationNotification,
 } from 'vscode-languageclient/node';
+import { VB6_SOURCE_GLOB } from '../shared/components';
 
 let client: LanguageClient;
 let statusBarItem: StatusBarItem;
@@ -42,7 +43,7 @@ export function activate(context: ExtensionContext) {
       { scheme: 'file', language: 'vb6' },
     ],
     synchronize: {
-      fileEvents: workspace.createFileSystemWatcher('**/*.{bas,cls,frm}'),
+      fileEvents: workspace.createFileSystemWatcher(`/**/*.${VB6_SOURCE_GLOB}`),
       configurationSection: 'vb6',
     },
     initializationOptions: getInitializationOptions(),

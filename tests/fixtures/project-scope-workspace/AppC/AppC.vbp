@@ -1,0 +1,6 @@
+Type=Exe
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\Windows\System32\stdole2.tlb#OLE Automation
+Module=modShared; ..\AppA\source\modShared.bas
+Module=modSharedDuplicate; source\modSharedDuplicate.bas
+Name="AppC"
+Startup="Sub Main"

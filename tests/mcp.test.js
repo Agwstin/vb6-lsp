@@ -36,14 +36,29 @@ test('MCP server exposes tools and indexes a workspace from env configuration', 
   child.stdin.write(encode({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'read_function', arguments: { file: 'modShared.bas', name: 'UseShared' } } }));
   child.stdin.write(encode({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'list_symbols', arguments: { file: 'modShared.bas', kind: 'Sub' } } }));
   child.stdin.write(encode({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'index_stats', arguments: {} } }));
+  child.stdin.write(encode({ jsonrpc: '2.0', id: 6, method: 'tools/call', params: { name: 'read_function', arguments: { name: 'UseShared' } } }));
+  child.stdin.write(encode({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'search_code', arguments: { query: 'use shared', maxResults: 5 } } }));
+  child.stdin.write(encode({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'list_symbols', arguments: { limit: 1, offset: 0, compact: true } } }));
 
   await new Promise((resolve) => setTimeout(resolve, 500));
   child.kill();
 
-  assert.match(stderr, /Indexed \d+ symbols/);
+  assert.match(stderr, /(Indexed|Loaded) \d+ symbols/);
   assert.match(buffer, /index_stats|symbols|files/);
   assert.match(buffer, /TestClient\.vbp/);
   assert.match(buffer, /read_function/);
   assert.match(buffer, /list_symbols/);
   assert.match(buffer, /UseShared/);
+
+  const responses = buffer.trim().split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+  const searchResponse = responses.find((message) => message.id === 7);
+  const searchPayload = JSON.parse(searchResponse.result.content[0].text);
+  assert.ok(searchPayload.count >= 1);
+  assert.ok(searchPayload.results.some((item) => item.matchKind === 'normalized' || item.matchKind === 'symbol'));
+
+  const pagedResponse = responses.find((message) => message.id === 8);
+  const pagedPayload = JSON.parse(pagedResponse.result.content[0].text);
+  assert.equal(pagedPayload.limit, 1);
+  assert.equal(pagedPayload.offset, 0);
+  assert.equal(typeof pagedPayload.hasMore, 'boolean');
 });

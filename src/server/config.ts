@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { URI } from 'vscode-uri';
+import { getComponentPolicy, getComponentPolicyForFile, VB6ComponentKind } from '../shared/components';
 
 export interface VB6ServerSettings {
   workspaceRoot?: string;
@@ -10,9 +11,11 @@ export interface VB6ServerSettings {
 }
 
 export interface VB6ProjectComponent {
-  kind: 'Module' | 'Class' | 'Form' | 'UserControl' | 'Designer';
+  kind: VB6ComponentKind;
   name: string;
   path: string;
+  supported: boolean;
+  limitation?: string;
 }
 
 export interface VB6ProjectReference {
@@ -42,6 +45,8 @@ export interface VB6WorkspaceConfig {
   rootDir: string;
   projectFiles: string[];
   sourceDirs: string[];
+  /** Source dirs the user explicitly configured (env/settings), used to rank ambiguous file matches. */
+  configuredSourceDirs: string[];
   projects: VB6ProjectMetadata[];
   externalReferences: VB6ProjectReference[];
   objectReferences: VB6ProjectReference[];
@@ -54,13 +59,10 @@ export function findProjectsForFile(config: VB6WorkspaceConfig, filePath: string
   );
 }
 
-const COMPONENT_PREFIXES = new Map<string, VB6ProjectComponent['kind']>([
-  ['Module=', 'Module'],
-  ['Class=', 'Class'],
-  ['Form=', 'Form'],
-  ['UserControl=', 'UserControl'],
-  ['Designer=', 'Designer'],
-]);
+const COMPONENT_PREFIXES = new Map<string, VB6ProjectComponent['kind']>(
+  (['Module', 'Class', 'Form', 'UserControl', 'Designer'] as VB6ComponentKind[])
+    .map((kind) => [getComponentPolicy(kind).entryPrefix, kind] as const),
+);
 
 const IGNORED_DIRS = new Set([
   '.git',
@@ -102,6 +104,7 @@ export function resolveWorkspaceConfig(options: {
     rootDir,
     projectFiles: discoveredProjectFiles,
     sourceDirs,
+    configuredSourceDirs,
     projects,
     externalReferences: dedupeReferences(projects.flatMap((project) => project.references)),
     objectReferences: dedupeReferences(projects.flatMap((project) => project.objects)),
@@ -219,11 +222,18 @@ function parseProjectFile(projectFile: string): VB6ProjectMetadata | null {
     const componentName = extractComponentName(rawValue, componentPath);
     const fullPath = path.resolve(projectDir, componentPath);
     if (!fs.existsSync(fullPath)) continue;
+    const policy = getComponentPolicy(kind);
+    const filePolicy = getComponentPolicyForFile(fullPath);
+    const supported = Boolean(policy.indexed && filePolicy?.kind === kind);
 
     components.push({
       kind,
       name: componentName,
       path: fullPath,
+      supported,
+      limitation: supported
+        ? undefined
+        : policy.limitation || `Expected ${policy.extensions.join(' or ')} for ${kind}; found ${path.extname(fullPath) || '(no extension)'}.`,
     });
   }
 

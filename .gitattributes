@@ -1,2 +1,21 @@
-# Auto detect text files and perform LF normalization
+# Keep modern source, configuration, and documentation deterministic across hosts.
 * text=auto
+*.ts text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.png binary
+
+# Preserve the CRLF convention expected by legacy VB6 project/source tooling.
+*.bas text eol=crlf
+*.cls text eol=crlf
+*.ctl text eol=crlf
+*.dsr text eol=crlf
+*.frm text eol=crlf
+*.vbp text eol=crlf
+*.frx binary
+*.ctx binary
+*.res binary

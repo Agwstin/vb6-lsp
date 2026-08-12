@@ -1,5 +1,6 @@
 import * as chokidar from 'chokidar';
 import { VB6Indexer } from './indexer';
+import { VB6_SOURCE_GLOB } from '../../shared/components';
 
 export class VB6Watcher {
   private watcher: chokidar.FSWatcher | null = null;
@@ -12,10 +13,10 @@ export class VB6Watcher {
   }
 
   /**
-   * Start watching the given directories for .bas/.cls/.frm changes.
+   * Start watching the given directories for supported VB6 source changes.
    */
   start(dirs: string[]): void {
-    const globs = dirs.map(d => d.replace(/\\/g, '/') + '/**/*.{bas,cls,frm}');
+    const globs = dirs.map(d => d.replace(/\\/g, '/') + `/**/*.${VB6_SOURCE_GLOB}`);
 
     this.watcher = chokidar.watch(globs, {
       ignoreInitial: true,

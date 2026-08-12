@@ -10,5 +10,6 @@ Module=modTypes; source\modTypes.bas
 Module=modCompletion; source\modCompletion.bas
 Module=modInference; source\modInference.bas
 Module=modMemberAccess; source\modMemberAccess.bas
+Module=modFormWith; source\modFormWith.bas
 Startup="Sub Main"
 Name="AdvancedApp"

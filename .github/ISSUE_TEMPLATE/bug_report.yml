@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a reproducible defect in the extension, LSP, MCP server, or documentation.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include proprietary VB6 source, credentials, tokens, customer names, or full production paths. Reduce the failure to a synthetic fixture whenever possible.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: State the published version or short commit that shows the problem.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, Node.js version, editor/client, and whether this is LSP or MCP.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Give the smallest safe fixture or exact steps and commands.
+      placeholder: |
+        1. Open ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and observed behavior
+      description: Describe the expected result and the actual result, including the exact error text if safe.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Verification evidence
+      description: List static checks, focused tests, protocol tests, or real-project validation already run.
+    validations:
+      required: false
