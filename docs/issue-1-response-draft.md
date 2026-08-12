@@ -19,10 +19,10 @@ I have started a bounded, read-only resource slice in `vb6-lsp`:
 - malformed offsets, truncated records, workspace escapes, and oversized
   inputs fail without writing or returning full binary payloads.
 
-The current checked-in fixture proves the parser contract, but the new MCP
-protocol path still needs a fresh maintainer-run build and package smoke test.
-It also does not yet claim proprietary OCX control bags, automatic designer
-hydration, resource writing, or full compatibility with the neighboring tool.
+The current checked-in fixture and the fresh 3.4.0 build/package smoke prove the
+bounded parser contract and MCP protocol path. It still does not claim
+proprietary OCX control bags, automatic designer hydration, resource writing,
+or full compatibility with the neighboring tool.
 I also saw that its public README advertises `.pag`/`.dob` companion coverage
 and `.res` read/write operations; those are useful compatibility targets, but
 I want an actual fixture and expected result before matching that surface.
